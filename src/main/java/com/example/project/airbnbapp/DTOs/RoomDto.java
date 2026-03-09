@@ -1,13 +1,11 @@
 package com.example.project.airbnbapp.DTOs;
 
-import com.example.project.airbnbapp.Entity.Hotel;
 import jakarta.persistence.*;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
+import lombok.Data;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 
+@Data
 public class RoomDto {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
