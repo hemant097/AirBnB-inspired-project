@@ -1,20 +1,21 @@
 package com.example.project.airbnbapp.Entity;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
+
+@Getter @Setter
 @Entity
-@Getter
-@Setter
 @Table(
         uniqueConstraints = @UniqueConstraint(
                 name = "unique_hotel_room_date",
                 columnNames = {"hotel_id","room_id","date"}
 ))
+@Builder
+@AllArgsConstructor @NoArgsConstructor
 public class Inventory {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -36,10 +37,10 @@ public class Inventory {
 
     private Integer totalCount;
 
-    @Column(nullable = false, precision = 2, scale = 2)
+    @Column(nullable = false, precision = 4, scale = 2)
     private BigDecimal surgeFactor;
 
-    @Column(nullable = false, precision = 5, scale = 2)
+    @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal price;
 
     @Column(nullable = false) //better to also include city here, as we are going to search with city, will avoid join queries

@@ -1,5 +1,6 @@
 package com.example.project.airbnbapp.Advice;
 
+import com.example.project.airbnbapp.Exception.ConflictException;
 import com.example.project.airbnbapp.Exception.ResourceNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -30,7 +31,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<APIError> internalServerError(MethodArgumentNotValidException manve) {
+    public ResponseEntity<APIError> validationErrors(MethodArgumentNotValidException manve) {
 
         //getting all the binding errors from the exception and converting it to List<String> using stream
         List<String> errorList = manve.getBindingResult()
@@ -49,17 +50,34 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(apiError, HttpStatus.BAD_REQUEST);
     }
 
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<APIError> internalServerError(Exception exception) {
+    @ExceptionHandler(ConflictException.class)
+    public ResponseEntity<APIError> conflictError(ConflictException exception) {
 
-        String dateAndTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd-MMM-yyyy HH:mm"));
         //using lombok builder
         APIError apiError = APIError.builder()
                 .message(exception.getMessage())
-                .errorRecordedTime(dateAndTime)
+                .errorRecordedTime(returnCurrentDateTime())
+                .httpStatus(HttpStatus.CONFLICT)
+                .build();
+
+        return new ResponseEntity<>(apiError, HttpStatus.CONFLICT);
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<APIError> internalServerError(Exception exception) {
+
+        //using lombok builder
+        APIError apiError = APIError.builder()
+                .message(exception.getMessage())
+                .errorRecordedTime(returnCurrentDateTime())
                 .httpStatus(HttpStatus.INTERNAL_SERVER_ERROR)
                 .build();
 
         return new ResponseEntity<>(apiError, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    //returns current date and time
+    String returnCurrentDateTime(){
+       return LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd-MMM-yyyy HH:mm"));
     }
 }

@@ -6,7 +6,9 @@ import com.example.project.airbnbapp.Entity.Room;
 import com.example.project.airbnbapp.Exception.ResourceNotFoundException;
 import com.example.project.airbnbapp.Repository.HotelRepository;
 import com.example.project.airbnbapp.Repository.RoomRepository;
+import com.example.project.airbnbapp.Service.InventoryService;
 import com.example.project.airbnbapp.Service.RoomService;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
@@ -22,6 +24,8 @@ public class RoomServiceImpl implements RoomService {
     private final RoomRepository roomRepo;
     private final HotelRepository hotelRepo;
     private final ModelMapper modelMapper;
+    private final InventoryService inventoryService;
+
 
     @Override
     public RoomDto createNewRoom(Long hotelId, RoomDto roomDto) {
@@ -31,6 +35,9 @@ public class RoomServiceImpl implements RoomService {
         roomToCreate.setHotel(hotel);
 
         Room createdRoom = roomRepo.save(roomToCreate);
+
+        if(hotel.getActive())
+            inventoryService.initializeRoomForAYear(createdRoom);
 
         return modelMapper.map(createdRoom, RoomDto.class);
 
@@ -58,19 +65,22 @@ public class RoomServiceImpl implements RoomService {
     }
 
     @Override
+    @Transactional
     public void deleteRoomById(Long roomId) {
         log.info("Deleting the room with ID :{}",roomId);
 
         Room room = returnRoomIfExists(roomId);
-
+        inventoryService.deleteFutureInventory(room);
         roomRepo.delete(room);
     }
 
+    //Returns the hotel for an Id, else throws a ResourceNotFoundException
     Hotel returnHotelIfExists(Long id){
         return hotelRepo.findById(id)
                 .orElseThrow( () -> new ResourceNotFoundException("No hotel exists with id :" +id));
     }
 
+    //Returns the Room for an Id, else throws a ResourceNotFoundException
     Room returnRoomIfExists(Long roomId){
         return roomRepo.findById(roomId)
                 .orElseThrow( () -> new ResourceNotFoundException("No room exists with id :"+roomId));
