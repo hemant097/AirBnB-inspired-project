@@ -1,6 +1,8 @@
 package com.example.project.airbnbapp.Service.Impl;
 
 import com.example.project.airbnbapp.DTOs.HotelDto;
+import com.example.project.airbnbapp.DTOs.HotelInfoDto;
+import com.example.project.airbnbapp.DTOs.RoomDto;
 import com.example.project.airbnbapp.Entity.Hotel;
 import com.example.project.airbnbapp.Entity.Room;
 import com.example.project.airbnbapp.Exception.ConflictException;
@@ -14,6 +16,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -103,6 +107,16 @@ public class HotelServiceImpl implements HotelService {
         for(Room room : hotelToActivate.getRooms())
             inventoryService.initializeRoomForAYear(room);
 
+    }
+
+    @Override
+    public HotelInfoDto getHotelInfoWithRooms(Long hotelId) {
+        Hotel hotel = returnHotelIfExists(hotelId);
+
+        List< RoomDto> roomDtoList = hotel.getRooms().stream()
+                .map( (element) -> modelMapper.map(element, RoomDto.class))
+                .toList();
+       return new HotelInfoDto( modelMapper.map(hotel, HotelDto.class), roomDtoList);
     }
 
     //Returns the hotel for an Id, else throws a ResourceNotFoundException
