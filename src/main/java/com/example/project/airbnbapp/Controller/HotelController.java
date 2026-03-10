@@ -1,7 +1,6 @@
 package com.example.project.airbnbapp.Controller;
 
 import com.example.project.airbnbapp.DTOs.HotelDto;
-import com.example.project.airbnbapp.Entity.Hotel;
 import com.example.project.airbnbapp.Service.HotelService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

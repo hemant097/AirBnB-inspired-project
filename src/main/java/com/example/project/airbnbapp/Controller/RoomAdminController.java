@@ -1,9 +1,6 @@
 package com.example.project.airbnbapp.Controller;
 
-import com.example.project.airbnbapp.DTOs.HotelDto;
 import com.example.project.airbnbapp.DTOs.RoomDto;
-import com.example.project.airbnbapp.Entity.Room;
-import com.example.project.airbnbapp.Service.HotelService;
 import com.example.project.airbnbapp.Service.RoomService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
