@@ -18,11 +18,14 @@ public class Payment {
     @Column(unique = true, nullable = false)
     private String transactionId;
 
+    @OneToOne
+    private Booking booking;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private PaymentStatus paymentStatus;
 
-    @Column(nullable = false, precision = 5,scale = 2)
+    @Column(nullable = false, precision = 10,scale = 2)
     private BigDecimal amount;
 
 

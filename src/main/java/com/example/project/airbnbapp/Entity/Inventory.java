@@ -35,6 +35,10 @@ public class Inventory {
     @Column(nullable = false, columnDefinition = "INTEGER DEFAULT 0")
     private Integer bookedCount;
 
+    @Column(nullable = false, columnDefinition = "INTEGER DEFAULT 0")
+    //this count shows the rooms which are held for a particular booking, for 10 minutes to complete payment
+    private Integer reservedCount;
+
     private Integer totalCount;
 
     @Column(nullable = false, precision = 4, scale = 2)

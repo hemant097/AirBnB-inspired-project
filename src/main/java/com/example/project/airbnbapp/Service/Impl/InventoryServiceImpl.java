@@ -8,6 +8,7 @@ import com.example.project.airbnbapp.Entity.Room;
 import com.example.project.airbnbapp.Repository.InventoryRepository;
 import com.example.project.airbnbapp.Service.InventoryService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -21,6 +22,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class InventoryServiceImpl implements InventoryService {
 
     private final InventoryRepository inventoryRepo;
@@ -28,6 +30,8 @@ public class InventoryServiceImpl implements InventoryService {
 
     @Override
     public void initializeRoomForAYear(Room room) {
+
+        log.info("initializing inventory for this room with id:{}, in :{}",room.getId(), room.getHotel().getName());
 
         LocalDate today = LocalDate.now();
         LocalDate endDate = today.plusYears(1);
@@ -43,6 +47,7 @@ public class InventoryServiceImpl implements InventoryService {
                     .surgeFactor(BigDecimal.ONE)
                     .totalCount(room.getTotalCount())
                     .bookedCount(0)
+                    .reservedCount(0)
                     .closed(false)
                     .build();
 
@@ -51,16 +56,21 @@ public class InventoryServiceImpl implements InventoryService {
             today=today.plusDays(1);
         }
 
+        log.info("initialized inventory for this room with id:{}, in :{}",room.getId(), room.getHotel().getName());
 
     }
 
     @Override
     public void deleteFutureInventory(Room room) {
+        log.info("Deleting the inventories of room with id:{}", room.getId());
             inventoryRepo.deleteInventoriesByRoom(room );
     }
 
     @Override
     public Page<HotelDto> searchHotels(HotelSearchRequest searchRequest) {
+
+        log.info("Searching hotels for {} city, from {} to {} ",
+                searchRequest.getCity(), searchRequest.getStartDate(), searchRequest.getEndDate());
 
         Pageable pageable = PageRequest.of(searchRequest.getPage(), searchRequest.getSize());
 
