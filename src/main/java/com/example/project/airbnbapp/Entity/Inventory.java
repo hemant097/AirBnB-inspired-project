@@ -45,7 +45,7 @@ public class Inventory {
     private BigDecimal surgeFactor;
 
     @Column(nullable = false, precision = 10, scale = 2)
-    private BigDecimal price;
+    private BigDecimal price; // price of inventory on that particular date
 
     @Column(nullable = false) //better to also include city here, as we are going to search with city, will avoid join queries
     private String city;
