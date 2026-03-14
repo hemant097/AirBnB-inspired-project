@@ -1,10 +1,12 @@
 package com.example.project.airbnbapp.Service.Impl;
 
 import com.example.project.airbnbapp.DTOs.HotelDto;
+import com.example.project.airbnbapp.DTOs.HotelPriceDto;
 import com.example.project.airbnbapp.DTOs.HotelSearchRequest;
 import com.example.project.airbnbapp.Entity.Hotel;
 import com.example.project.airbnbapp.Entity.Inventory;
 import com.example.project.airbnbapp.Entity.Room;
+import com.example.project.airbnbapp.Repository.HotelMinPriceRepository;
 import com.example.project.airbnbapp.Repository.InventoryRepository;
 import com.example.project.airbnbapp.Service.InventoryService;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +28,7 @@ import java.util.List;
 public class InventoryServiceImpl implements InventoryService {
 
     private final InventoryRepository inventoryRepo;
+    private final HotelMinPriceRepository hotelMinPriceRepository;
     private final ModelMapper modelMapper;
 
     @Override
@@ -67,7 +70,7 @@ public class InventoryServiceImpl implements InventoryService {
     }
 
     @Override
-    public Page<HotelDto> searchHotels(HotelSearchRequest searchRequest) {
+    public Page<HotelPriceDto> searchHotels(HotelSearchRequest searchRequest) {
 
         log.info("Searching hotels for {} city, from {} to {} ",
                 searchRequest.getCity(), searchRequest.getStartDate(), searchRequest.getEndDate());
@@ -76,7 +79,7 @@ public class InventoryServiceImpl implements InventoryService {
 
         long dateCount = ChronoUnit.DAYS.between(searchRequest.getStartDate(), searchRequest.getEndDate()) +1;
 
-        Page<Hotel> page = inventoryRepo.findHotelsWithAvailableInventory(
+        Page<HotelPriceDto> page = hotelMinPriceRepository.findHotelsWithAvailableInventory(
                 searchRequest.getCity(),
                 searchRequest.getStartDate(), searchRequest.getEndDate(),
                 searchRequest.getRoomsRequired(),
@@ -84,10 +87,9 @@ public class InventoryServiceImpl implements InventoryService {
                 pageable
         );
 
-       List<Hotel> hotels =  page.getContent();
+        System.out.println(page.getContent().size());
+        return page;
 
-        System.out.println(hotels.size());
-
-        return page.map( element -> modelMapper.map(element, HotelDto.class));
+//                page.map( element -> modelMapper.map(element, HotelDto.class));
     }
 }

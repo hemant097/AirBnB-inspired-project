@@ -50,7 +50,8 @@ public class BookingServiceImpl implements BookingService {
         Hotel hotel = returnHotelIfExists(hotelId);
         Room room = returnRoomIfExists(roomId);
 
-        List<Inventory> inventoryList = inventoryRepo.findAndLockAvailableInventory(roomId, checkInDate, checkOutDate, roomsRequired);
+        List<Inventory> inventoryList = inventoryRepo.
+                findAndLockAvailableInventory(roomId, checkInDate, checkOutDate, roomsRequired);
 
         long dateCount = ChronoUnit.DAYS.between(checkInDate, checkOutDate) +1;
 

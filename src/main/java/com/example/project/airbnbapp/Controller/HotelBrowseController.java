@@ -3,9 +3,11 @@ package com.example.project.airbnbapp.Controller;
 
 import com.example.project.airbnbapp.DTOs.HotelDto;
 import com.example.project.airbnbapp.DTOs.HotelInfoDto;
+import com.example.project.airbnbapp.DTOs.HotelPriceDto;
 import com.example.project.airbnbapp.DTOs.HotelSearchRequest;
 import com.example.project.airbnbapp.Service.HotelService;
 import com.example.project.airbnbapp.Service.InventoryService;
+import com.example.project.airbnbapp.Service.PricingUpdateService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -20,11 +22,12 @@ public class HotelBrowseController {
 
     private final InventoryService inventoryService;
     private final HotelService hotelService;
+private final PricingUpdateService pricingUpdateService;
 
-    @GetMapping
-    public ResponseEntity<Page<HotelDto>> searchHotels(@RequestBody HotelSearchRequest searchRequest){
+    @GetMapping("/search")
+    public ResponseEntity<Page<HotelPriceDto>> searchHotels(@RequestBody HotelSearchRequest searchRequest){
 
-        Page<HotelDto> page = inventoryService.searchHotels(searchRequest);
+        Page<HotelPriceDto> page = inventoryService.searchHotels(searchRequest);
 
         return ResponseEntity.ok(page);
     }
@@ -33,4 +36,5 @@ public class HotelBrowseController {
     public ResponseEntity<HotelInfoDto> getHotelInfo(@PathVariable Long hotelId){
         return ResponseEntity.ok(hotelService.getHotelInfoWithRooms(hotelId));
     }
+
 }
