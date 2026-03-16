@@ -2,9 +2,7 @@ package com.example.project.airbnbapp.Entity;
 
 import com.example.project.airbnbapp.Entity.enums.Role;
 import jakarta.persistence.*;
-import lombok.Generated;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -18,6 +16,9 @@ import java.util.stream.Collectors;
 @Getter
 @Setter
 @Table(name = "app_user")
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class User implements UserDetails {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
