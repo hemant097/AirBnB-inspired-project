@@ -2,8 +2,11 @@ package com.example.project.airbnbapp.Advice;
 
 import com.example.project.airbnbapp.Exception.ConflictException;
 import com.example.project.airbnbapp.Exception.ResourceNotFoundException;
+import io.jsonwebtoken.JwtException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -63,8 +66,46 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(apiError, HttpStatus.CONFLICT);
     }
 
-    @ExceptionHandler(Exception.class)
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<APIError> handleAuthenticationException(AuthenticationException exception) {
+
+        APIError apiError = APIError.builder()
+                .message(exception.getMessage())
+                .errorRecordedTime(returnCurrentDateTime())
+                .httpStatus(HttpStatus.UNAUTHORIZED)
+                .build();
+
+        return new ResponseEntity<>(apiError, HttpStatus.UNAUTHORIZED);
+    }
+
+    @ExceptionHandler(JwtException.class)
+    public ResponseEntity<APIError> handleJwtException(JwtException exception) {
+
+        APIError apiError = APIError.builder()
+                .message(exception.getMessage())
+                .errorRecordedTime(returnCurrentDateTime())
+                .httpStatus(HttpStatus.UNAUTHORIZED)
+                .build();
+
+        return new ResponseEntity<>(apiError, HttpStatus.UNAUTHORIZED);
+    }
+
+    @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
+    public ResponseEntity<APIError> handleAccessDeniedException(AccessDeniedException exception) {
+
+        APIError apiError = APIError.builder()
+                .message(exception.getMessage())
+                .errorRecordedTime(returnCurrentDateTime())
+                .httpStatus(HttpStatus.FORBIDDEN)
+                .build();
+
+        return new ResponseEntity<>(apiError, HttpStatus.FORBIDDEN);
+    }
+
+//    @ExceptionHandler(Exception.class)
     public ResponseEntity<APIError> internalServerError(Exception exception) {
+
+        System.out.println("aldhalfhalf");
 
         //using lombok builder
         APIError apiError = APIError.builder()

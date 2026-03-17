@@ -5,6 +5,7 @@ import com.example.project.airbnbapp.DTOs.SignUpRequestDto;
 import com.example.project.airbnbapp.DTOs.UserDto;
 import com.example.project.airbnbapp.Entity.User;
 import com.example.project.airbnbapp.Entity.enums.Role;
+import com.example.project.airbnbapp.Exception.ResourceNotFoundException;
 import com.example.project.airbnbapp.Repository.UserRepository;
 import io.jsonwebtoken.security.Password;
 import lombok.RequiredArgsConstructor;
@@ -58,6 +59,17 @@ public class AuthService {
         arr[1] = jwtService.generateRefreshToken(user);
 
         return arr;
+    }
+
+    public String generateNewAccessToken(String refreshToken){
+        Long userId = jwtService.getUserIdFromToken(refreshToken);
+
+        User user = userRepo.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("no user found with this id"+userId));
+
+        return jwtService.generateAccessToken(user);
+
+
     }
 }
 

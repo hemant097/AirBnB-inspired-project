@@ -3,7 +3,9 @@ package com.example.project.airbnbapp.Service.Impl;
 import com.example.project.airbnbapp.DTOs.RoomDto;
 import com.example.project.airbnbapp.Entity.Hotel;
 import com.example.project.airbnbapp.Entity.Room;
+import com.example.project.airbnbapp.Entity.User;
 import com.example.project.airbnbapp.Exception.ResourceNotFoundException;
+import com.example.project.airbnbapp.Exception.UnauthorizedException;
 import com.example.project.airbnbapp.Repository.HotelRepository;
 import com.example.project.airbnbapp.Repository.RoomRepository;
 import com.example.project.airbnbapp.Service.InventoryService;
@@ -12,6 +14,7 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -31,6 +34,9 @@ public class RoomServiceImpl implements RoomService {
     public RoomDto createNewRoom(Long hotelId, RoomDto roomDto) {
         log.info("Creating a new room in hotel with id: {}",hotelId);
         Hotel hotel = returnHotelIfExists(hotelId);
+
+        isCurrentUserOwnerOfHotel(hotel);
+
         Room roomToCreate = modelMapper.map(roomDto, Room.class);
         roomToCreate.setHotel(hotel);
 
@@ -49,6 +55,9 @@ public class RoomServiceImpl implements RoomService {
         log.info("Getting all rooms in hotel with id: {}",hotelId);
 
         Hotel hotel = returnHotelIfExists(hotelId);
+
+        isCurrentUserOwnerOfHotel(hotel);
+
         return hotel.getRooms().stream()
                 .map( element -> modelMapper.map(element, RoomDto.class))
                 .toList();
@@ -68,8 +77,10 @@ public class RoomServiceImpl implements RoomService {
     @Transactional
     public void deleteRoomById(Long roomId) {
         log.info("Deleting the room with ID :{}",roomId);
-
         Room room = returnRoomIfExists(roomId);
+
+        isCurrentUserOwnerOfHotel(room.getHotel());
+
         inventoryService.deleteFutureInventory(room);
         roomRepo.delete(room);
     }
@@ -84,5 +95,13 @@ public class RoomServiceImpl implements RoomService {
     Room returnRoomIfExists(Long roomId){
         return roomRepo.findById(roomId)
                 .orElseThrow( () -> new ResourceNotFoundException("No room exists with id :"+roomId));
+    }
+
+    //checks whether current user in security context is owner of the hotel, else throws exception
+    void isCurrentUserOwnerOfHotel(Hotel hotel){
+        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+
+        if(!user.equals(hotel.getOwner()))
+            throw new UnauthorizedException("User does not own this hotel with id:"+hotel.getId());
     }
 }

@@ -7,12 +7,14 @@ import com.example.project.airbnbapp.DTOs.UserDto;
 import com.example.project.airbnbapp.Entity.*;
 import com.example.project.airbnbapp.Entity.enums.BookingStatus;
 import com.example.project.airbnbapp.Exception.ResourceNotFoundException;
+import com.example.project.airbnbapp.Exception.UnauthorizedException;
 import com.example.project.airbnbapp.Repository.*;
 import com.example.project.airbnbapp.Service.BookingService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -93,7 +95,20 @@ public class BookingServiceImpl implements BookingService {
         Booking booking = bookingRepo.findById(bookingId)
                 .orElseThrow(() -> new ResourceNotFoundException("no booking found with id "+bookingId));
 
-        hasBookingExpired(booking.getCreatedAt());
+        User currentUser = returnCurrentUser();
+
+        System.out.println(currentUser.getEmail()+","+booking.getUser().getEmail());
+        System.out.println(currentUser.getId()+","+booking.getUser().getId());
+
+        System.out.println(currentUser.getClass());
+        System.out.println(booking.getUser().getClass());
+
+        if(!currentUser.equals(booking.getUser()))
+            throw new UnauthorizedException("Booking does not belong to this user with id:"+currentUser.getId());
+
+        boolean isBookingExpired = hasBookingExpired(booking.getCreatedAt());
+        if(isBookingExpired)
+            throw new IllegalStateException("Booking has expired, create new booking");
 
         if(booking.getBookingStatus() != BookingStatus.RESERVED)
             throw new IllegalStateException("Booking is not under reserved state, cannot add guests");
@@ -105,7 +120,7 @@ public class BookingServiceImpl implements BookingService {
 
         for(GuestDto guestDto: guestDtoList){
             Guest guest = modelMapper.map(guestDto,Guest.class);
-            guest.setUser(returnCurrentUser());
+            guest.setUser(currentUser);
             guest = guestRepo.save(guest);
             booking.getGuests().add(guest);
             bookingDto.getGuests().add(guestDto);
@@ -117,7 +132,7 @@ public class BookingServiceImpl implements BookingService {
 
         modelMapper.map(bookingWithGuests, bookingDto);
 
-        bookingDto.setUserDto(modelMapper.map(returnCurrentUser(), UserDto.class));
+        bookingDto.setUserDto(modelMapper.map(currentUser, UserDto.class));
 
         System.out.println(bookingDto);
         return bookingDto;
@@ -139,17 +154,12 @@ public class BookingServiceImpl implements BookingService {
 
     //checks if the booking created time plus 10 minutes were before than the current time,
     // if yes booking is expired, and exception is thrown
-     void hasBookingExpired(LocalDateTime bct){
-        boolean expired = bct.plusMinutes(10).isBefore(LocalDateTime.now());
-        if(expired) throw new IllegalStateException("Booking has expired, create new booking");
+     boolean hasBookingExpired(LocalDateTime bct){
+        return bct.plusMinutes(10).isBefore(LocalDateTime.now());
     }
 
     //TODO: remove dummy user
     User returnCurrentUser(){
-        User user = new User();
-        user.setId(1L);
-        user.setName("Dummy");
-
-        return user;
+        return (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
     }
 }

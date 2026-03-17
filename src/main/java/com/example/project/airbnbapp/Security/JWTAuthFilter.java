@@ -9,11 +9,14 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.web.servlet.HandlerExceptionResolver;
 
 import java.io.IOException;
 
@@ -24,6 +27,10 @@ public class JWTAuthFilter extends OncePerRequestFilter {
 
     private final JWTService jwtService;
     private final UserService userService;
+
+    @Autowired
+    @Qualifier("handlerExceptionResolver")
+    private HandlerExceptionResolver handlerExceptionResolver;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -45,23 +52,11 @@ public class JWTAuthFilter extends OncePerRequestFilter {
 
                 SecurityContextHolder.getContext().setAuthentication(authenticationToken);
             }
-            System.out.println("inside JwtAuthFilter");
             filterChain.doFilter(request, response);
         }catch (JwtException ex){
-//            System.out.println("Auth before: " + SecurityContextHolder.getContext().getAuthentication());
-            System.out.println("JWT Exception occurred inside JwtAuthFilter ");
+            logger.error("JWT Exception occurred inside JwtAuthFilter ");
 
-//            JwtAuthenticationException jwtAuthEx = new JwtAuthenticationException(ex.getLocalizedMessage());
-//            request.setAttribute("jwtException", jwtAuthEx);
-//            throw jwtAuthEx;
-
-
-                throw new JWTAuthenticationException(ex.getLocalizedMessage());
-
-
-
-//            jwtAuthEntryPoint.commence(request, response, authEx );
-
+            handlerExceptionResolver.resolveException(request, response, null, ex);
         }
 
 
