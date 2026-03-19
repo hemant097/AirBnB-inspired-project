@@ -10,10 +10,12 @@ import com.example.project.airbnbapp.Exception.ResourceNotFoundException;
 import com.example.project.airbnbapp.Exception.UnauthorizedException;
 import com.example.project.airbnbapp.Repository.*;
 import com.example.project.airbnbapp.Service.BookingService;
+import com.example.project.airbnbapp.Service.CheckoutService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -37,6 +39,10 @@ public class BookingServiceImpl implements BookingService {
     private final RoomRepository roomRepo;
     private final GuestRepository guestRepo;
     private final ModelMapper modelMapper;
+    private final CheckoutService checkoutService;
+
+    @Value("${front-end.url}")
+    private String frontEndUrl;
 
     @Override
     @Transactional
@@ -97,12 +103,6 @@ public class BookingServiceImpl implements BookingService {
 
         User currentUser = returnCurrentUser();
 
-        System.out.println(currentUser.getEmail()+","+booking.getUser().getEmail());
-        System.out.println(currentUser.getId()+","+booking.getUser().getId());
-
-        System.out.println(currentUser.getClass());
-        System.out.println(booking.getUser().getClass());
-
         if(!currentUser.equals(booking.getUser()))
             throw new UnauthorizedException("Booking does not belong to this user with id:"+currentUser.getId());
 
@@ -137,6 +137,27 @@ public class BookingServiceImpl implements BookingService {
         System.out.println(bookingDto);
         return bookingDto;
 
+    }
+
+    @Override
+    public String initiatePayment(Long bookingId) {
+
+        Booking booking = bookingRepo.findById(bookingId)
+                .orElseThrow(() -> new ResourceNotFoundException("no booking found with id "+bookingId));
+
+        User currentUser = returnCurrentUser();
+
+        if(!currentUser.equals(booking.getUser()))
+            throw new UnauthorizedException("Booking does not belong to this user with id:"+currentUser.getId());
+
+        if(  hasBookingExpired(booking.getCreatedAt()) )
+            throw new IllegalStateException("Booking has expired, create new booking");
+
+        String sessionUrl = checkoutService.getCheckOutSession(booking, frontEndUrl+"payments/success",frontEndUrl+"payments/failure");
+
+        booking.setBookingStatus(BookingStatus.PAYMENT_PENDING);
+        bookingRepo.save(booking);
+        return sessionUrl;
     }
 
 
