@@ -22,13 +22,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<APIError> resourceNotFound(ResourceNotFoundException rnfe) {
 
-        String dateAndTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd-MMM-yyyy HH:mm"));
-        //using lombok package private constructor
-        APIError apiError = APIError.builder()
-                .message(rnfe.getMessage())
-                .httpStatus(HttpStatus.NOT_FOUND)
-                .errorRecordedTime(dateAndTime)
-                .build();
+        APIError apiError = returnAPIError(rnfe);
+        apiError.setHttpStatus(HttpStatus.NOT_FOUND);
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(apiError);
 
     }
@@ -42,26 +37,18 @@ public class GlobalExceptionHandler {
                 .stream().map(error->error.getDefaultMessage())
                 .collect(Collectors.toList());
 
-        String dateAndTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd-MMM-yyyy HH:mm"));
-        //using lombok builder
-        APIError apiError = APIError.builder()
-                .message("Input validation failed")
-                .httpStatus(HttpStatus.BAD_REQUEST)
-                .errorRecordedTime(dateAndTime)
-                .subErrors(errorList)
-                .build();
+        APIError apiError = returnAPIError(manve);
+        apiError.setHttpStatus(HttpStatus.BAD_REQUEST);
+        apiError.setSubErrors(errorList);
+
         return new ResponseEntity<>(apiError, HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(ConflictException.class)
     public ResponseEntity<APIError> conflictError(ConflictException exception) {
 
-        //using lombok builder
-        APIError apiError = APIError.builder()
-                .message(exception.getMessage())
-                .errorRecordedTime(returnCurrentDateTime())
-                .httpStatus(HttpStatus.CONFLICT)
-                .build();
+        APIError apiError = returnAPIError(exception);
+        apiError.setHttpStatus(HttpStatus.CONFLICT);
 
         return new ResponseEntity<>(apiError, HttpStatus.CONFLICT);
     }
@@ -69,11 +56,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<APIError> handleAuthenticationException(AuthenticationException exception) {
 
-        APIError apiError = APIError.builder()
-                .message(exception.getMessage())
-                .errorRecordedTime(returnCurrentDateTime())
-                .httpStatus(HttpStatus.UNAUTHORIZED)
-                .build();
+        APIError apiError = returnAPIError(exception);
+        apiError.setHttpStatus(HttpStatus.UNAUTHORIZED);
 
         return new ResponseEntity<>(apiError, HttpStatus.UNAUTHORIZED);
     }
@@ -81,44 +65,40 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(JwtException.class)
     public ResponseEntity<APIError> handleJwtException(JwtException exception) {
 
-        APIError apiError = APIError.builder()
-                .message(exception.getMessage())
-                .errorRecordedTime(returnCurrentDateTime())
-                .httpStatus(HttpStatus.UNAUTHORIZED)
-                .build();
+        APIError apiError = returnAPIError(exception);
+            apiError.setHttpStatus(HttpStatus.UNAUTHORIZED);
 
         return new ResponseEntity<>(apiError, HttpStatus.UNAUTHORIZED);
     }
 
-    @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
+    @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<APIError> handleAccessDeniedException(AccessDeniedException exception) {
 
-        APIError apiError = APIError.builder()
-                .message(exception.getMessage())
-                .errorRecordedTime(returnCurrentDateTime())
-                .httpStatus(HttpStatus.FORBIDDEN)
-                .build();
+
+        APIError apiError = returnAPIError(exception);
+            apiError.setHttpStatus(HttpStatus.FORBIDDEN);
 
         return new ResponseEntity<>(apiError, HttpStatus.FORBIDDEN);
     }
 
-//    @ExceptionHandler(Exception.class)
+    @ExceptionHandler(Exception.class)
     public ResponseEntity<APIError> internalServerError(Exception exception) {
 
-        System.out.println("aldhalfhalf");
-
-        //using lombok builder
-        APIError apiError = APIError.builder()
-                .message(exception.getMessage())
-                .errorRecordedTime(returnCurrentDateTime())
-                .httpStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-                .build();
+        APIError apiError = returnAPIError(exception);
+            apiError.setHttpStatus(HttpStatus.INTERNAL_SERVER_ERROR);
 
         return new ResponseEntity<>(apiError, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
-    //returns current date and time
-    String returnCurrentDateTime(){
-       return LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd-MMM-yyyy HH:mm"));
+
+    //return APIError, with exception message, and current date,time
+    APIError returnAPIError(Exception exception){
+
+        String currentDateAndTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd-MMM-yyyy HH:mm"));
+
+        return APIError.builder()
+                .message(exception.getMessage())
+                .errorRecordedTime(currentDateAndTime)
+                .build();
     }
 }

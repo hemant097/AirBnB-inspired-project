@@ -18,8 +18,6 @@ import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -39,10 +37,7 @@ public class BookingServiceImpl implements BookingService {
     private final RoomRepository roomRepo;
     private final GuestRepository guestRepo;
     private final ModelMapper modelMapper;
-    private final CheckoutService checkoutService;
 
-    @Value("${front-end.url}")
-    private String frontEndUrl;
 
     @Override
     @Transactional
@@ -133,33 +128,10 @@ public class BookingServiceImpl implements BookingService {
         modelMapper.map(bookingWithGuests, bookingDto);
 
         bookingDto.setUserDto(modelMapper.map(currentUser, UserDto.class));
-
-        System.out.println(bookingDto);
+        log.info("Added {} guest in booking ID:{}", guestDtoList.size(), bookingId);
         return bookingDto;
 
     }
-
-    @Override
-    public String initiatePayment(Long bookingId) {
-
-        Booking booking = bookingRepo.findById(bookingId)
-                .orElseThrow(() -> new ResourceNotFoundException("no booking found with id "+bookingId));
-
-        User currentUser = returnCurrentUser();
-
-        if(!currentUser.equals(booking.getUser()))
-            throw new UnauthorizedException("Booking does not belong to this user with id:"+currentUser.getId());
-
-        if(  hasBookingExpired(booking.getCreatedAt()) )
-            throw new IllegalStateException("Booking has expired, create new booking");
-
-        String sessionUrl = checkoutService.getCheckOutSession(booking, frontEndUrl+"payments/success",frontEndUrl+"payments/failure");
-
-        booking.setBookingStatus(BookingStatus.PAYMENT_PENDING);
-        bookingRepo.save(booking);
-        return sessionUrl;
-    }
-
 
     //Returns the hotel for an Id, else throws a ResourceNotFoundException
     Hotel returnHotelIfExists(Long id){

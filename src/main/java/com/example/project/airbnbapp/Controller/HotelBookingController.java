@@ -4,6 +4,7 @@ import com.example.project.airbnbapp.DTOs.BookingDto;
 import com.example.project.airbnbapp.DTOs.BookingRequest;
 import com.example.project.airbnbapp.DTOs.GuestDto;
 import com.example.project.airbnbapp.Service.BookingService;
+import com.example.project.airbnbapp.Service.PaymentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -19,6 +20,7 @@ import java.util.Map;
 public class HotelBookingController {
 
     private final BookingService bookingService;
+    private final PaymentService paymentService;
 
     @PostMapping("/init")
     ResponseEntity<BookingDto> initializeBooking (@RequestBody BookingRequest bookingRequest){
@@ -35,9 +37,23 @@ public class HotelBookingController {
     @PostMapping("/{bookingId}/payments")
     ResponseEntity<Map<String,String>> initiatePayment(@PathVariable Long bookingId){
 
-        String sessionUrl = bookingService.initiatePayment(bookingId);
+        String sessionUrl = paymentService.initiatePayment(bookingId);
         return ResponseEntity.ok(Map.of("sessionUrl",sessionUrl));
     }
+
+
+
+    @GetMapping("/payments/success")
+    ResponseEntity<String> successfulPayment(){
+            return ResponseEntity.ok("Payment completed successfully");
+    }
+
+
+    @GetMapping("/payments/failure")
+    ResponseEntity<String> failedPayment(){
+        return ResponseEntity.ok("Payment failed, try again");
+    }
+
 
 
 }
