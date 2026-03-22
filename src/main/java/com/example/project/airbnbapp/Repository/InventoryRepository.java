@@ -5,10 +5,10 @@ import com.example.project.airbnbapp.Entity.Inventory;
 import com.example.project.airbnbapp.Entity.Room;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -56,6 +56,35 @@ public interface InventoryRepository extends JpaRepository<Inventory,Long> {
                                                   @Param("startDate")LocalDate startDate,
                                                   @Param("endDate") LocalDate endDate,
                                                   @Param("roomCount") Integer roomCount );
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+        SELECT i from Inventory i
+        WHERE i.room.id=:roomId
+            AND (i.date between :startDate AND :endDate)
+            AND (i.totalCount - i.bookedCount) >= :roomCount
+            AND i.closed=false
+    """)
+    List<Inventory> lockReservedInventory(@Param("roomId") Long roomId,
+                                                  @Param("startDate")LocalDate startDate,
+                                                  @Param("endDate") LocalDate endDate,
+                                                  @Param("roomCount") Integer roomCount );
+
+    @Modifying
+    @Query("""
+                UPDATE Inventory i
+                SET i.reservedCount = i.reservedCount - :numberOfRooms,
+                    i.bookedCount = i.bookedCount + :numberOfRooms
+                WHERE i.room.id = :roomId
+                AND i.date BETWEEN :checkInDate AND :checkOutDate
+                AND (i.totalCount - i.bookedCount) >= :numberOfRooms
+                AND (i.reservedCount >= :numberOfRooms)
+                AND (i.closed = false )
+    """)
+    void confirmBooking(@Param("roomId") Long roomId,
+                        @Param("checkInDate") LocalDate startDate,
+                        @Param("checkOutDate") LocalDate endDate,
+                        @Param("numberOfRooms") int numberOfRooms);
 
     List<Inventory> findAllByHotelAndDateBetween(Hotel hotel, LocalDate startDate, LocalDate endDate);
 }

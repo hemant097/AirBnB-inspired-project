@@ -42,17 +42,14 @@ public class HotelBookingController {
     }
 
 
+    @DeleteMapping("/{bookingId}/delete")
+    ResponseEntity<Void> addGuests(@PathVariable Long bookingId){
 
-    @GetMapping("/payments/success")
-    ResponseEntity<String> successfulPayment(){
-            return ResponseEntity.ok("Payment completed successfully");
+        bookingService.deleteABooking(bookingId);
+        return ResponseEntity.noContent().build();
     }
 
 
-    @GetMapping("/payments/failure")
-    ResponseEntity<String> failedPayment(){
-        return ResponseEntity.ok("Payment failed, try again");
-    }
 
 
 

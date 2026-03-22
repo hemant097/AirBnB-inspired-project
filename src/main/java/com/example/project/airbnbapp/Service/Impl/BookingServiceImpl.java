@@ -97,20 +97,19 @@ public class BookingServiceImpl implements BookingService {
                 .orElseThrow(() -> new ResourceNotFoundException("no booking found with id "+bookingId));
 
         User currentUser = returnCurrentUser();
-
         if(!currentUser.equals(booking.getUser()))
             throw new UnauthorizedException("Booking does not belong to this user with id:"+currentUser.getId());
 
         boolean isBookingExpired = hasBookingExpired(booking.getCreatedAt());
+
         if(isBookingExpired)
             throw new IllegalStateException("Booking has expired, create new booking");
-
         if(booking.getBookingStatus() != BookingStatus.RESERVED)
             throw new IllegalStateException("Booking is not under reserved state, cannot add guests");
 
         log.info("Booking has not expired, and is in RESERVED status");
 
-        BookingDto bookingDto = new BookingDto();
+        BookingDto bookingDto = new BookingDto(); // as we need to return a dto
         bookingDto.setGuests(new HashSet<>());
 
         for(GuestDto guestDto: guestDtoList){
@@ -133,6 +132,23 @@ public class BookingServiceImpl implements BookingService {
 
     }
 
+    @Override
+    @Transactional
+    public void deleteABooking(Long bookingId) {
+
+        Booking booking = bookingRepo.findById(bookingId)
+                .orElseThrow(() -> new ResourceNotFoundException("no booking found with id "+bookingId));
+
+        User currentUser = returnCurrentUser();
+        if(!currentUser.equals(booking.getUser()))
+            throw new UnauthorizedException("Booking does not belong to this user with id:"+currentUser.getId());
+
+        for( Guest guest : booking.getGuests())
+            guestRepo.deleteById(guest.getId());
+
+        bookingRepo.deleteById(bookingId);
+    }
+
     //Returns the hotel for an Id, else throws a ResourceNotFoundException
     Hotel returnHotelIfExists(Long id){
         return hotelRepo.findById(id)
@@ -145,13 +161,12 @@ public class BookingServiceImpl implements BookingService {
                 .orElseThrow( () -> new ResourceNotFoundException("No room exists with id :"+roomId));
     }
 
-    //checks if the booking created time plus 10 minutes were before than the current time,
+    //checks if the booking created time plus 10 minutes is before the current time,
     // if yes booking is expired, and exception is thrown
      boolean hasBookingExpired(LocalDateTime bct){
         return bct.plusMinutes(10).isBefore(LocalDateTime.now());
     }
 
-    //TODO: remove dummy user
     User returnCurrentUser(){
         return (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
     }
