@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class WebhookController {
 
-    //after we do this in stripe cli - stripe listen --forward-to localhost:8080/api/v1/webhook/payment.
+    //after we do this in stripe cli - stripe listen --forward-to localhost:8080/api/v1/webhook/payment
     //Stripe CLI listens for the event it received from Stripe server and forwards to our localhost app
     //This endpoint waits for payment updates, In the post request, there is payload, signature. We will verify using this
     // signature, that only Stripe is calling this endpoint and no one else.

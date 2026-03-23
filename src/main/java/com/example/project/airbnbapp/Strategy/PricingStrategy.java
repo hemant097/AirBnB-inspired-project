@@ -9,21 +9,4 @@ import java.math.BigDecimal;
 public interface PricingStrategy {
 
     BigDecimal calculatePrice(Inventory inventory);
-
-    @Service
-    class PricingService {
-
-        public BigDecimal calculateDynamicPricing(Inventory inventory){
-            PricingStrategy pricingStrategy = new BasePricingStrategy();
-
-            //applying additonal strategies in decorator design pattern
-            pricingStrategy = new SurgePricingStrategy(pricingStrategy);
-            pricingStrategy = new OccupancyPricingStrategy(pricingStrategy);
-            pricingStrategy = new UrgencyPricingStrategy(pricingStrategy);
-            pricingStrategy = new HolidayPricingStrategy(pricingStrategy);
-
-            return  pricingStrategy.calculatePrice(inventory);
-
-        }
-    }
 }

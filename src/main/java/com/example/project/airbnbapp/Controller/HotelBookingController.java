@@ -42,10 +42,10 @@ public class HotelBookingController {
     }
 
 
-    @DeleteMapping("/{bookingId}/delete")
+    @PostMapping("/{bookingId}/cancel")
     ResponseEntity<Void> addGuests(@PathVariable Long bookingId){
 
-        bookingService.deleteABooking(bookingId);
+        bookingService.cancelBookingWithId(bookingId);
         return ResponseEntity.noContent().build();
     }
 

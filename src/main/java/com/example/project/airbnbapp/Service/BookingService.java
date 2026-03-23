@@ -12,7 +12,7 @@ public interface BookingService {
 
     BookingDto addGuests(Long hotelId, List<GuestDto> guestDtoList);
 
-    void deleteABooking(Long bookingId);
+    void cancelBookingWithId(Long bookingId);
 
 
 }

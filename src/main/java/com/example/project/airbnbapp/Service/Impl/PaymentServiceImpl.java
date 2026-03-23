@@ -1,10 +1,7 @@
 package com.example.project.airbnbapp.Service.Impl;
 
 import com.example.project.airbnbapp.Entity.Booking;
-import com.example.project.airbnbapp.Entity.Hotel;
-import com.example.project.airbnbapp.Entity.Room;
 import com.example.project.airbnbapp.Entity.User;
-import com.example.project.airbnbapp.Entity.enums.BookingStatus;
 import com.example.project.airbnbapp.Exception.ResourceNotFoundException;
 import com.example.project.airbnbapp.Exception.UnauthorizedException;
 import com.example.project.airbnbapp.Repository.BookingRepository;
@@ -39,6 +36,7 @@ public class PaymentServiceImpl implements PaymentService {
     private String frontEndUrl;
 
     @Override
+    @Transactional
     public String initiatePayment(Long bookingId) {
 
         log.info("Initiating payment for booking ID:{}",bookingId);

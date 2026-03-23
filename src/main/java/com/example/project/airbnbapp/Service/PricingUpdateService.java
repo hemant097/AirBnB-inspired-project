@@ -6,6 +6,7 @@ import com.example.project.airbnbapp.Entity.Inventory;
 import com.example.project.airbnbapp.Repository.HotelMinPriceRepository;
 import com.example.project.airbnbapp.Repository.HotelRepository;
 import com.example.project.airbnbapp.Repository.InventoryRepository;
+import com.example.project.airbnbapp.Strategy.PricingService;
 import com.example.project.airbnbapp.Strategy.PricingStrategy;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -31,7 +32,7 @@ public class PricingUpdateService {
     private final HotelRepository hotelRepo;
     private final InventoryRepository inventoryRepository;
     private final HotelMinPriceRepository hotelMinPriceRepository;
-    private final PricingStrategy.PricingService pricingService;
+    private final PricingService pricingService;
 
     @Scheduled(cron = "0 0 * * * *")
     public void updatePrices(){

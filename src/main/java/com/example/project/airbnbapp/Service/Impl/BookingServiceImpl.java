@@ -10,12 +10,15 @@ import com.example.project.airbnbapp.Exception.ResourceNotFoundException;
 import com.example.project.airbnbapp.Exception.UnauthorizedException;
 import com.example.project.airbnbapp.Repository.*;
 import com.example.project.airbnbapp.Service.BookingService;
-import com.example.project.airbnbapp.Service.CheckoutService;
+import com.example.project.airbnbapp.Strategy.PricingService;
+import com.stripe.exception.StripeException;
+import com.stripe.model.Refund;
+import com.stripe.model.checkout.Session;
+import com.stripe.param.RefundCreateParams;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
@@ -25,6 +28,9 @@ import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+
+import static com.example.project.airbnbapp.Entity.enums.BookingStatus.*;
 
 @Service
 @RequiredArgsConstructor
@@ -37,6 +43,7 @@ public class BookingServiceImpl implements BookingService {
     private final RoomRepository roomRepo;
     private final GuestRepository guestRepo;
     private final ModelMapper modelMapper;
+    private final PricingService pricingService;
 
 
     @Override
@@ -69,7 +76,10 @@ public class BookingServiceImpl implements BookingService {
         inventoryRepo.saveAll(inventoryList);
 
 
-        //TODO: calculate dynamic price
+        //calculate dynamic price
+
+        BigDecimal priceForOneRoom = pricingService.calculateTotalPrice(inventoryList);
+        BigDecimal totalPrice = priceForOneRoom.multiply(BigDecimal.valueOf(roomsRequired));
 
         Booking booking = Booking.builder()
                 .bookingStatus(BookingStatus.RESERVED)
@@ -79,7 +89,7 @@ public class BookingServiceImpl implements BookingService {
                 .checkOutDate(checkOutDate)
                 .user(returnCurrentUser())
                 .roomsCount(roomsRequired)
-                .amount(BigDecimal.valueOf(1800))
+                .amount(totalPrice)
                 .build();
 
         booking = bookingRepo.save(booking);
@@ -120,7 +130,7 @@ public class BookingServiceImpl implements BookingService {
             bookingDto.getGuests().add(guestDto);
         }
 
-        booking.setBookingStatus(BookingStatus.GUESTS_ADDED);
+        booking.setBookingStatus(GUESTS_ADDED);
 
         Booking bookingWithGuests = bookingRepo.save(booking);
 
@@ -134,7 +144,7 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     @Transactional
-    public void deleteABooking(Long bookingId) {
+    public void cancelBookingWithId(Long bookingId) {
 
         Booking booking = bookingRepo.findById(bookingId)
                 .orElseThrow(() -> new ResourceNotFoundException("no booking found with id "+bookingId));
@@ -142,11 +152,43 @@ public class BookingServiceImpl implements BookingService {
         User currentUser = returnCurrentUser();
         if(!currentUser.equals(booking.getUser()))
             throw new UnauthorizedException("Booking does not belong to this user with id:"+currentUser.getId());
+        if(booking.getBookingStatus()!=CONFIRMED)
+            throw new IllegalStateException("Only CONFIRMED bookings can be cancelled");
 
-        for( Guest guest : booking.getGuests())
-            guestRepo.deleteById(guest.getId());
+        booking.setBookingStatus(CANCELLED);
+        bookingRepo.save(booking);
 
-        bookingRepo.deleteById(bookingId);
+        Long roomId = booking.getRoom().getId();
+        LocalDate checkInDate = booking.getCheckInDate();
+        LocalDate checkOutDate = booking.getCheckOutDate();
+        Integer roomCount = booking.getRoomsCount();
+
+        log.info("cancelling booking in {}, room:{}, from {} to {}, {} rooms",
+                booking.getHotel().getName(), booking.getRoom().getType(), checkInDate, checkOutDate, roomCount);
+
+        inventoryRepo.lockReservedInventory(roomId, checkInDate, checkOutDate, roomCount);
+        inventoryRepo.updateInventoryWhenBookingCancelled(roomId, checkInDate, checkOutDate, roomCount);
+
+        //handle the refund
+
+
+        try {
+            Session session = Session.retrieve(booking.getPaymentSessionId());
+            RefundCreateParams refundParams = RefundCreateParams.builder()
+                    .setPaymentIntent(session.getPaymentIntent())
+                    .putAllMetadata(Map.of("booking-id",String.valueOf(bookingId),
+                            "cancellation-charges", String.valueOf(500.00)))
+                    .setReason(RefundCreateParams.Reason.REQUESTED_BY_CUSTOMER)
+                    .setAmount(session.getAmountTotal()-(500*100))
+                    .build();
+
+            //this will call the stripe API internally and process the refund
+            Refund.create(refundParams);
+        } catch (StripeException e) {
+            throw new RuntimeException(e);
+        }
+
+
     }
 
     //Returns the hotel for an Id, else throws a ResourceNotFoundException

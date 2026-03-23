@@ -65,11 +65,14 @@ public interface InventoryRepository extends JpaRepository<Inventory,Long> {
             AND (i.totalCount - i.bookedCount) >= :roomCount
             AND i.closed=false
     """)
+    //the confirmBooking method which is being called just after this in PaymentServiceImpl doesn't get executed if
+        // there isn't a return value here. Like we use void (as Return value of the method is never used)
     List<Inventory> lockReservedInventory(@Param("roomId") Long roomId,
                                                   @Param("startDate")LocalDate startDate,
                                                   @Param("endDate") LocalDate endDate,
                                                   @Param("roomCount") Integer roomCount );
 
+    //update inventory when a booking is confirmed
     @Modifying
     @Query("""
                 UPDATE Inventory i
@@ -85,6 +88,40 @@ public interface InventoryRepository extends JpaRepository<Inventory,Long> {
                         @Param("checkInDate") LocalDate startDate,
                         @Param("checkOutDate") LocalDate endDate,
                         @Param("numberOfRooms") int numberOfRooms);
+
+
+    //update when a booking is cancelled by the user
+    @Modifying
+    @Query("""
+                UPDATE Inventory i
+                SET i.bookedCount = i.bookedCount - :numberOfRooms
+                    WHERE i.room.id = :roomId
+                AND i.date BETWEEN :checkInDate AND :checkOutDate
+                AND (i.totalCount - i.bookedCount) >= :numberOfRooms
+                AND (i.closed = false )
+    """)
+    void updateInventoryWhenBookingCancelled(@Param("roomId") Long roomId,
+                                             @Param("checkInDate") LocalDate startDate,
+                                             @Param("checkOutDate") LocalDate endDate,
+                                             @Param("numberOfRooms") int numberOfRooms);
+
+    //update when a booking is deleted by the Cron job
+    @Modifying
+    @Query("""
+                UPDATE Inventory i
+                SET i.reservedCount = i.reservedCount - :numberOfRooms
+                    WHERE i.room.id = :roomId
+                AND i.date BETWEEN :checkInDate AND :checkOutDate
+                AND (i.reservedCount >= :numberOfRooms)
+                AND (i.totalCount - i.bookedCount) >= :numberOfRooms
+                AND (i.closed = false )
+    """)
+    void updateInventoryWhenBookingDeleted(@Param("roomId") Long roomId,
+                                               @Param("checkInDate") LocalDate startDate,
+                                               @Param("checkOutDate") LocalDate endDate,
+                                               @Param("numberOfRooms") int numberOfRooms);
+
+
 
     List<Inventory> findAllByHotelAndDateBetween(Hotel hotel, LocalDate startDate, LocalDate endDate);
 }
