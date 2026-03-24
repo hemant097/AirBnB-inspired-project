@@ -1,6 +1,7 @@
 package com.example.project.airbnbapp.Service;
 
 import com.example.project.airbnbapp.DTOs.RoomDto;
+import com.example.project.airbnbapp.Entity.Room;
 
 import java.util.List;
 
@@ -13,4 +14,6 @@ public interface RoomService {
     RoomDto getRoomById(Long roomId);
 
     void deleteRoomById(Long roomId);
+
+    Room returnRoomIfExists(Long roomId);
 }

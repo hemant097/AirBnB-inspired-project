@@ -23,8 +23,6 @@ public class UserServiceImpl implements UserService, UserDetailsService {
                 .orElseThrow(() -> new BadCredentialsException("user with email "+username+" not found"));
     }
 
-
-
     @Override
     public User getUserById(Long id) {
         return userRepo.findById(id)

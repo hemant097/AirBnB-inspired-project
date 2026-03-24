@@ -13,11 +13,11 @@ import com.example.project.airbnbapp.Repository.HotelRepository;
 import com.example.project.airbnbapp.Repository.RoomRepository;
 import com.example.project.airbnbapp.Service.HotelService;
 import com.example.project.airbnbapp.Service.InventoryService;
+import com.example.project.airbnbapp.util.AppUtil;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -132,16 +132,18 @@ public class HotelServiceImpl implements HotelService {
     }
 
     //Returns the hotel for an Id, else throws a ResourceNotFoundException
-    Hotel returnHotelIfExists(Long hotelId){
+    public Hotel returnHotelIfExists(Long hotelId){
         return hotelRepo.findById(hotelId)
                 .orElseThrow( () -> new ResourceNotFoundException("No hotel exists with id :" +hotelId));
     }
 
     //checks whether current user in security context is owner of the hotel, else throws exception
-    void isCurrentUserOwnerOfThisHotel(Hotel hotel){
-        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+    @Override
+    public void isCurrentUserOwnerOfThisHotel(Hotel hotel){
+        User user = AppUtil.returnCurrentUser();
 
         if(!user.equals(hotel.getOwner()))
             throw new UnauthorizedException("User does not own this hotel with id:"+hotel.getId());
     }
+
 }

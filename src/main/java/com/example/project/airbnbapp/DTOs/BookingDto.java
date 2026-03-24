@@ -5,6 +5,7 @@ import com.example.project.airbnbapp.Entity.User;
 import com.example.project.airbnbapp.Entity.enums.BookingStatus;
 import lombok.Data;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Set;
@@ -28,4 +29,6 @@ public class BookingDto {
     private BookingStatus bookingStatus;
 
     private Set<GuestDto> guests;
+
+    private BigDecimal amount;
 }

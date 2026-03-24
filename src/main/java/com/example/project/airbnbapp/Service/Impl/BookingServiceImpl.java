@@ -10,6 +10,8 @@ import com.example.project.airbnbapp.Exception.ResourceNotFoundException;
 import com.example.project.airbnbapp.Exception.UnauthorizedException;
 import com.example.project.airbnbapp.Repository.*;
 import com.example.project.airbnbapp.Service.BookingService;
+import com.example.project.airbnbapp.Service.HotelService;
+import com.example.project.airbnbapp.Service.RoomService;
 import com.example.project.airbnbapp.Strategy.PricingService;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Refund;
@@ -19,7 +21,6 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -31,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 
 import static com.example.project.airbnbapp.Entity.enums.BookingStatus.*;
+import static com.example.project.airbnbapp.util.AppUtil.returnCurrentUser;
 
 @Service
 @RequiredArgsConstructor
@@ -39,11 +41,11 @@ public class BookingServiceImpl implements BookingService {
 
     private final InventoryRepository inventoryRepo;
     private final BookingRepository bookingRepo;
-    private final HotelRepository hotelRepo;
-    private final RoomRepository roomRepo;
     private final GuestRepository guestRepo;
     private final ModelMapper modelMapper;
     private final PricingService pricingService;
+    private final HotelService hotelService;
+    private final RoomService roomService;
 
 
     @Override
@@ -55,10 +57,11 @@ public class BookingServiceImpl implements BookingService {
         LocalDate checkOutDate = bookingRequest.getCheckOutDate();
         Integer roomsRequired = bookingRequest.getRoomsCount();
 
-        log.info("initializing booking for hotel: {}, room: {}, from {} to {}", hotelId, roomId, checkInDate, checkOutDate);
+        log.info("initializing booking for hotelID: {}, room: {}, from {} to {}",
+                hotelId, roomId, checkInDate, checkOutDate);
 
-        Hotel hotel = returnHotelIfExists(hotelId);
-        Room room = returnRoomIfExists(roomId);
+        Hotel hotel = hotelService.returnHotelIfExists(hotelId);
+        Room room = roomService.returnRoomIfExists(roomId);
 
         List<Inventory> inventoryList = inventoryRepo.
                 findAndLockAvailableInventory(roomId, checkInDate, checkOutDate, roomsRequired);
@@ -70,14 +73,18 @@ public class BookingServiceImpl implements BookingService {
         }
 
         //Reserve the room / update the bookedCount of inventories
-        for(Inventory inv : inventoryList){
-            inv.setReservedCount(inv.getReservedCount()+ roomsRequired);}
 
-        inventoryRepo.saveAll(inventoryList);
+//        for(Inventory inv : inventoryList){
+//                inv.setReservedCount(inv.getReservedCount()+ roomsRequired);}
+//        inventoryRepo.saveAll(inventoryList);
+
+        //the above logic can be done using this custom modifying query in repository
+            inventoryRepo.initBooking(roomId, checkInDate, checkOutDate, roomsRequired);
+        log.info("inventory updated for this booking request, hotelID: {}, room: {}, from {} to {}",
+                hotelId, roomId, checkInDate, checkOutDate);
 
 
         //calculate dynamic price
-
         BigDecimal priceForOneRoom = pricingService.calculateTotalPrice(inventoryList);
         BigDecimal totalPrice = priceForOneRoom.multiply(BigDecimal.valueOf(roomsRequired));
 
@@ -95,20 +102,20 @@ public class BookingServiceImpl implements BookingService {
         booking = bookingRepo.save(booking);
         BookingDto bookingDto =  modelMapper.map(booking, BookingDto.class);
         bookingDto.setUserDto(modelMapper.map(returnCurrentUser(), UserDto.class));
+
+        log.info("booking has been created for: {}, room: {}, from {} to {}",
+                booking.getHotel().getName(), booking.getRoom().getType(), checkInDate, checkOutDate);
         return bookingDto;
     }
 
     @Override
     @Transactional
     public BookingDto addGuests(Long bookingId, List<GuestDto> guestDtoList) {
-        log.info("Adding {} guest in the booking with id:{}", guestDtoList.size(), bookingId);
+        log.info("Trying to add {} guest in the booking with id:{}", guestDtoList.size(), bookingId);
 
-        Booking booking = bookingRepo.findById(bookingId)
-                .orElseThrow(() -> new ResourceNotFoundException("no booking found with id "+bookingId));
-
+        Booking booking = returnBookingIfExists(bookingId);
         User currentUser = returnCurrentUser();
-        if(!currentUser.equals(booking.getUser()))
-            throw new UnauthorizedException("Booking does not belong to this user with id:"+currentUser.getId());
+        checkWhetherBookingOwnerIsMatching(currentUser, booking.getUser());
 
         boolean isBookingExpired = hasBookingExpired(booking.getCreatedAt());
 
@@ -117,7 +124,7 @@ public class BookingServiceImpl implements BookingService {
         if(booking.getBookingStatus() != BookingStatus.RESERVED)
             throw new IllegalStateException("Booking is not under reserved state, cannot add guests");
 
-        log.info("Booking has not expired, and is in RESERVED status");
+        log.info("Booking has not expired, adding guests now");
 
         BookingDto bookingDto = new BookingDto(); // as we need to return a dto
         bookingDto.setGuests(new HashSet<>());
@@ -146,12 +153,10 @@ public class BookingServiceImpl implements BookingService {
     @Transactional
     public void cancelBookingWithId(Long bookingId) {
 
-        Booking booking = bookingRepo.findById(bookingId)
-                .orElseThrow(() -> new ResourceNotFoundException("no booking found with id "+bookingId));
-
+        Booking booking = returnBookingIfExists(bookingId);
         User currentUser = returnCurrentUser();
-        if(!currentUser.equals(booking.getUser()))
-            throw new UnauthorizedException("Booking does not belong to this user with id:"+currentUser.getId());
+        checkWhetherBookingOwnerIsMatching(currentUser, booking.getUser());
+
         if(booking.getBookingStatus()!=CONFIRMED)
             throw new IllegalStateException("Only CONFIRMED bookings can be cancelled");
 
@@ -170,10 +175,9 @@ public class BookingServiceImpl implements BookingService {
         inventoryRepo.updateInventoryWhenBookingCancelled(roomId, checkInDate, checkOutDate, roomCount);
 
         //handle the refund
-
-
         try {
             Session session = Session.retrieve(booking.getPaymentSessionId());
+            log.info("Session object retrieved successfully");
             RefundCreateParams refundParams = RefundCreateParams.builder()
                     .setPaymentIntent(session.getPaymentIntent())
                     .putAllMetadata(Map.of("booking-id",String.valueOf(bookingId),
@@ -187,29 +191,33 @@ public class BookingServiceImpl implements BookingService {
         } catch (StripeException e) {
             throw new RuntimeException(e);
         }
-
+        log.info("booking cancelled for bookingID:{}", bookingId);
 
     }
 
-    //Returns the hotel for an Id, else throws a ResourceNotFoundException
-    Hotel returnHotelIfExists(Long id){
-        return hotelRepo.findById(id)
-                .orElseThrow( () -> new ResourceNotFoundException("No hotel exists with id :" +id));
+    @Override
+    public String getBookingStatus(Long bookingId) {
+
+        Booking booking = returnBookingIfExists(bookingId);
+        checkWhetherBookingOwnerIsMatching(returnCurrentUser(), booking.getUser());
+        return booking.getBookingStatus().name();
     }
 
-    //Returns the Room for an Id, else throws a ResourceNotFoundException
-    Room returnRoomIfExists(Long roomId){
-        return roomRepo.findById(roomId)
-                .orElseThrow( () -> new ResourceNotFoundException("No room exists with id :"+roomId));
+   @Override
+    public Booking returnBookingIfExists(Long bookingId){
+        return bookingRepo.findById(bookingId)
+                .orElseThrow(() -> new ResourceNotFoundException("no booking found with id "+bookingId));
     }
 
     //checks if the booking created time plus 10 minutes is before the current time,
-    // if yes booking is expired, and exception is thrown
      boolean hasBookingExpired(LocalDateTime bct){
         return bct.plusMinutes(10).isBefore(LocalDateTime.now());
     }
 
-    User returnCurrentUser(){
-        return (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+    //if the current user in security context is NOT the owner of the booking,then throws an exception, checks by
+    //comparing the user IDs of both users passed
+    void checkWhetherBookingOwnerIsMatching(User currentUser, User bookingUser){
+        if(!currentUser.equals(bookingUser))
+            throw new UnauthorizedException("Booking does not belong to this user with id:"+currentUser.getId());
     }
 }

@@ -3,18 +3,15 @@ package com.example.project.airbnbapp.Service.Impl;
 import com.example.project.airbnbapp.DTOs.RoomDto;
 import com.example.project.airbnbapp.Entity.Hotel;
 import com.example.project.airbnbapp.Entity.Room;
-import com.example.project.airbnbapp.Entity.User;
 import com.example.project.airbnbapp.Exception.ResourceNotFoundException;
-import com.example.project.airbnbapp.Exception.UnauthorizedException;
-import com.example.project.airbnbapp.Repository.HotelRepository;
 import com.example.project.airbnbapp.Repository.RoomRepository;
+import com.example.project.airbnbapp.Service.HotelService;
 import com.example.project.airbnbapp.Service.InventoryService;
 import com.example.project.airbnbapp.Service.RoomService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -25,17 +22,17 @@ import java.util.List;
 public class RoomServiceImpl implements RoomService {
 
     private final RoomRepository roomRepo;
-    private final HotelRepository hotelRepo;
     private final ModelMapper modelMapper;
+    private final HotelService hotelService;
     private final InventoryService inventoryService;
 
 
     @Override
     public RoomDto createNewRoom(Long hotelId, RoomDto roomDto) {
         log.info("Creating a new room in hotel with id: {}",hotelId);
-        Hotel hotel = returnHotelIfExists(hotelId);
+        Hotel hotel = hotelService.returnHotelIfExists(hotelId);
 
-        isCurrentUserOwnerOfHotel(hotel);
+        hotelService.isCurrentUserOwnerOfThisHotel(hotel);
 
         Room roomToCreate = modelMapper.map(roomDto, Room.class);
         roomToCreate.setHotel(hotel);
@@ -53,10 +50,8 @@ public class RoomServiceImpl implements RoomService {
     @Override
     public List<RoomDto> getAllRoomsInAHotel(Long hotelId) {
         log.info("Getting all rooms in hotel with id: {}",hotelId);
-
-        Hotel hotel = returnHotelIfExists(hotelId);
-
-        isCurrentUserOwnerOfHotel(hotel);
+        Hotel hotel = hotelService.returnHotelIfExists(hotelId);
+        hotelService.isCurrentUserOwnerOfThisHotel(hotel);
 
         return hotel.getRooms().stream()
                 .map( element -> modelMapper.map(element, RoomDto.class))
@@ -66,7 +61,6 @@ public class RoomServiceImpl implements RoomService {
     @Override
     public RoomDto getRoomById(Long roomId) {
         log.info("Getting the room with ID :{}",roomId);
-
         Room room = returnRoomIfExists(roomId);
 
         return modelMapper.map(room,RoomDto.class);
@@ -79,29 +73,16 @@ public class RoomServiceImpl implements RoomService {
         log.info("Deleting the room with ID :{}",roomId);
         Room room = returnRoomIfExists(roomId);
 
-        isCurrentUserOwnerOfHotel(room.getHotel());
+        hotelService.isCurrentUserOwnerOfThisHotel(room.getHotel());
 
         inventoryService.deleteFutureInventory(room);
         roomRepo.delete(room);
     }
 
-    //Returns the hotel for an Id, else throws a ResourceNotFoundException
-    Hotel returnHotelIfExists(Long id){
-        return hotelRepo.findById(id)
-                .orElseThrow( () -> new ResourceNotFoundException("No hotel exists with id :" +id));
-    }
-
     //Returns the Room for an Id, else throws a ResourceNotFoundException
-    Room returnRoomIfExists(Long roomId){
+    @Override
+    public Room returnRoomIfExists(Long roomId){
         return roomRepo.findById(roomId)
                 .orElseThrow( () -> new ResourceNotFoundException("No room exists with id :"+roomId));
-    }
-
-    //checks whether current user in security context is owner of the hotel, else throws exception
-    void isCurrentUserOwnerOfHotel(Hotel hotel){
-        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-
-        if(!user.equals(hotel.getOwner()))
-            throw new UnauthorizedException("User does not own this hotel with id:"+hotel.getId());
     }
 }

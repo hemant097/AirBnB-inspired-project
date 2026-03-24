@@ -8,13 +8,13 @@ import com.example.project.airbnbapp.Repository.BookingRepository;
 import com.example.project.airbnbapp.Repository.InventoryRepository;
 import com.example.project.airbnbapp.Service.CheckoutService;
 import com.example.project.airbnbapp.Service.PaymentService;
+import com.example.project.airbnbapp.util.AppUtil;
 import com.stripe.model.Event;
 import com.stripe.model.checkout.Session;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -44,7 +44,7 @@ public class PaymentServiceImpl implements PaymentService {
         Booking booking = bookingRepo.findById(bookingId)
                 .orElseThrow(() -> new ResourceNotFoundException("no booking found with id "+bookingId));
 
-        User currentUser = returnCurrentUser();
+        User currentUser = AppUtil.returnCurrentUser();
         if(!currentUser.equals(booking.getUser()))
             throw new UnauthorizedException("Booking does not belong to this user with id:"+currentUser.getId());
         if(  hasBookingExpired(booking.getCreatedAt()) )
@@ -102,9 +102,5 @@ public class PaymentServiceImpl implements PaymentService {
     // if yes booking is expired, and exception is thrown
     boolean hasBookingExpired(LocalDateTime bct){
         return bct.plusMinutes(10).isBefore(LocalDateTime.now());
-    }
-
-    User returnCurrentUser(){
-        return (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
     }
 }

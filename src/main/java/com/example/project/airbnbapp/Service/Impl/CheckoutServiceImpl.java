@@ -11,10 +11,11 @@ import com.stripe.param.CustomerCreateParams;
 import com.stripe.param.checkout.SessionCreateParams;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+
+import static com.example.project.airbnbapp.util.AppUtil.returnCurrentUser;
 
 @Service
 @RequiredArgsConstructor
@@ -26,7 +27,6 @@ public class CheckoutServiceImpl implements CheckoutService {
     @Override
     public String getCheckOutSession(Booking booking, String successUrl, String failureUrl) {
         log.info("Creating session for booking ID:{}", booking.getId());
-
         User currentUser = returnCurrentUser();
 
         try {
@@ -74,9 +74,5 @@ public class CheckoutServiceImpl implements CheckoutService {
             throw new RuntimeException(e);
         }
 
-    }
-
-    User returnCurrentUser(){
-        return (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
     }
 }

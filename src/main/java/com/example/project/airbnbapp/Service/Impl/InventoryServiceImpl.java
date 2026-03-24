@@ -1,9 +1,7 @@
 package com.example.project.airbnbapp.Service.Impl;
 
-import com.example.project.airbnbapp.DTOs.HotelDto;
 import com.example.project.airbnbapp.DTOs.HotelPriceDto;
 import com.example.project.airbnbapp.DTOs.HotelSearchRequest;
-import com.example.project.airbnbapp.Entity.Hotel;
 import com.example.project.airbnbapp.Entity.Inventory;
 import com.example.project.airbnbapp.Entity.Room;
 import com.example.project.airbnbapp.Repository.HotelMinPriceRepository;
@@ -20,7 +18,6 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor

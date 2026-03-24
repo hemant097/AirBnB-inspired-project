@@ -3,6 +3,7 @@ package com.example.project.airbnbapp.Service;
 
 import com.example.project.airbnbapp.DTOs.HotelDto;
 import com.example.project.airbnbapp.DTOs.HotelInfoDto;
+import com.example.project.airbnbapp.Entity.Hotel;
 
 public interface HotelService {
     HotelDto createNewHotel(HotelDto hotelDto);
@@ -15,4 +16,8 @@ public interface HotelService {
     void activateHotel(Long hotelId);
 
     HotelInfoDto getHotelInfoWithRooms(Long hotelId);
+
+    Hotel returnHotelIfExists(Long hotelId);
+
+    public void isCurrentUserOwnerOfThisHotel(Hotel hotel);
 }

@@ -10,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -49,6 +50,11 @@ public class HotelBookingController {
         return ResponseEntity.noContent().build();
     }
 
+    @GetMapping("/{bookingId}/status")
+    ResponseEntity<Map<String,String>> getBookingStatus(@PathVariable Long bookingId){
+
+        return ResponseEntity.ok(Collections.singletonMap("status",bookingService.getBookingStatus(bookingId)));
+    }
 
 
 

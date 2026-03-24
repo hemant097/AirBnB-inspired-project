@@ -12,7 +12,7 @@ import java.util.List;
 @RestController
 @RequestMapping(path = "/admin/hotels/{hotelId}/rooms")
 @RequiredArgsConstructor
-public class RoomAdminController {
+public class AdminRoomController {
 
     private final RoomService roomService;
 
