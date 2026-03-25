@@ -25,8 +25,8 @@ public class BookingUpdateService {
     private final InventoryRepository inventoryRepo;
     private final GuestRepository guestRepo;
 
-    //Here all the booking which are not confirmed, get deleted if the last updated time is more than 24 hours i.e., all
-    // the non-confirmed bookings older than 24 hours get deleted automatically
+    //Here all the booking which are not confirmed, get deleted if the last updated time is more than 7 days i.e., all
+    // the non-confirmed bookings older than 7 days get deleted automatically
 
 
     @Scheduled(cron = "0 0 * * * *")
@@ -56,6 +56,6 @@ public class BookingUpdateService {
     }
 
     boolean isBookingWorthyOfDeletion(LocalDateTime bookingUpdateTime){
-        return bookingUpdateTime.plusHours(24).isBefore(LocalDateTime.now());
+        return bookingUpdateTime.plusDays(7).isBefore(LocalDateTime.now());
     }
 }

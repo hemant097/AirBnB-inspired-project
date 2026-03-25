@@ -33,7 +33,6 @@ public class HotelServiceImpl implements HotelService {
     private final InventoryService inventoryService;
 
 
-
     @Override
     public HotelDto createNewHotel(HotelDto hotelDto) {
         log.info("creating a new hotel with name: {}",hotelDto.getName());
@@ -62,8 +61,8 @@ public class HotelServiceImpl implements HotelService {
 
     @Override
     public HotelDto updateHotelById(Long id, HotelDto hotelDto) {
-        log.info("updating the hotel with id: {}",id);
 
+        log.info("updating the hotel with id: {}",id);
         Hotel hotelToUpdate = returnHotelIfExists(id);
 
         isCurrentUserOwnerOfThisHotel(hotelToUpdate);
@@ -71,10 +70,8 @@ public class HotelServiceImpl implements HotelService {
         modelMapper.map(hotelDto, hotelToUpdate);
         hotelToUpdate.setId(id);
         Hotel updatedHotel = hotelRepo.save(hotelToUpdate);
+
         return modelMapper.map(updatedHotel, HotelDto.class);
-
-
-
     }
 
     @Override
@@ -82,7 +79,6 @@ public class HotelServiceImpl implements HotelService {
     public void deleteHotelById(Long id) {
 
         log.info("deleting a hotel with id: {}",id);
-
        Hotel hotelToDelete = returnHotelIfExists(id);
 
         isCurrentUserOwnerOfThisHotel(hotelToDelete);
@@ -93,9 +89,7 @@ public class HotelServiceImpl implements HotelService {
            roomRepo.deleteById(room.getId());
        }
 
-
         hotelRepo.deleteById(id);
-
     }
 
     @Override
@@ -103,7 +97,6 @@ public class HotelServiceImpl implements HotelService {
     public void activateHotel(Long hotelId) {
 
         log.info("trying to activating a new hotel with id: {}",hotelId);
-
         Hotel hotelToActivate = returnHotelIfExists(hotelId);
 
         isCurrentUserOwnerOfThisHotel(hotelToActivate);
@@ -117,7 +110,6 @@ public class HotelServiceImpl implements HotelService {
         //assuming only do it once
         for(Room room : hotelToActivate.getRooms())
             inventoryService.initializeRoomForAYear(room);
-
     }
 
     //Public method
@@ -128,8 +120,22 @@ public class HotelServiceImpl implements HotelService {
         List< RoomDto> roomDtoList = hotel.getRooms().stream()
                 .map( (element) -> modelMapper.map(element, RoomDto.class))
                 .toList();
+
        return new HotelInfoDto( modelMapper.map(hotel, HotelDto.class), roomDtoList);
     }
+
+    @Override
+    public List<HotelDto> getAllHotels() {
+
+        User adminUser = AppUtil.returnCurrentUser();
+        log.info("Getting all the hotels for the admin user with id:{}", adminUser.getId());
+
+        List<Hotel> hotels = hotelRepo.findByOwner(adminUser);
+        return hotels.stream()
+                .map((element) -> modelMapper.map(element, HotelDto.class))
+                .toList();
+    }
+
 
     //Returns the hotel for an Id, else throws a ResourceNotFoundException
     public Hotel returnHotelIfExists(Long hotelId){
@@ -145,5 +151,6 @@ public class HotelServiceImpl implements HotelService {
         if(!user.equals(hotel.getOwner()))
             throw new UnauthorizedException("User does not own this hotel with id:"+hotel.getId());
     }
+
 
 }

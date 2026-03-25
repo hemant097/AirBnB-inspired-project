@@ -15,7 +15,7 @@ public class BookingDto {
 
     private Long id;
 
-    private UserDto userDto;
+    private UserDto user;
 
     private Integer roomsCount;
 

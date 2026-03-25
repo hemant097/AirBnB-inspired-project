@@ -1,9 +1,6 @@
 package com.example.project.airbnbapp.Service.Impl;
 
-import com.example.project.airbnbapp.DTOs.BookingDto;
-import com.example.project.airbnbapp.DTOs.BookingRequest;
-import com.example.project.airbnbapp.DTOs.GuestDto;
-import com.example.project.airbnbapp.DTOs.UserDto;
+import com.example.project.airbnbapp.DTOs.*;
 import com.example.project.airbnbapp.Entity.*;
 import com.example.project.airbnbapp.Entity.enums.BookingStatus;
 import com.example.project.airbnbapp.Exception.ResourceNotFoundException;
@@ -13,6 +10,7 @@ import com.example.project.airbnbapp.Service.BookingService;
 import com.example.project.airbnbapp.Service.HotelService;
 import com.example.project.airbnbapp.Service.RoomService;
 import com.example.project.airbnbapp.Strategy.PricingService;
+import com.example.project.airbnbapp.util.AppUtil;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Refund;
 import com.stripe.model.checkout.Session;
@@ -21,15 +19,19 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static com.example.project.airbnbapp.Entity.enums.BookingStatus.*;
 import static com.example.project.airbnbapp.util.AppUtil.returnCurrentUser;
@@ -44,7 +46,7 @@ public class BookingServiceImpl implements BookingService {
     private final GuestRepository guestRepo;
     private final ModelMapper modelMapper;
     private final PricingService pricingService;
-    private final HotelService hotelService;
+        private final HotelService hotelService;
     private final RoomService roomService;
 
 
@@ -101,7 +103,7 @@ public class BookingServiceImpl implements BookingService {
 
         booking = bookingRepo.save(booking);
         BookingDto bookingDto =  modelMapper.map(booking, BookingDto.class);
-        bookingDto.setUserDto(modelMapper.map(returnCurrentUser(), UserDto.class));
+        bookingDto.setUser(modelMapper.map(returnCurrentUser(), UserDto.class));
 
         log.info("booking has been created for: {}, room: {}, from {} to {}",
                 booking.getHotel().getName(), booking.getRoom().getType(), checkInDate, checkOutDate);
@@ -111,15 +113,13 @@ public class BookingServiceImpl implements BookingService {
     @Override
     @Transactional
     public BookingDto addGuests(Long bookingId, List<GuestDto> guestDtoList) {
-        log.info("Trying to add {} guest in the booking with id:{}", guestDtoList.size(), bookingId);
+        log.info("Trying to add {} guest(s) in the booking with id:{}", guestDtoList.size(), bookingId);
 
         Booking booking = returnBookingIfExists(bookingId);
         User currentUser = returnCurrentUser();
         checkWhetherBookingOwnerIsMatching(currentUser, booking.getUser());
 
-        boolean isBookingExpired = hasBookingExpired(booking.getCreatedAt());
-
-        if(isBookingExpired)
+        if( hasBookingExpired(booking.getCreatedAt()) )
             throw new IllegalStateException("Booking has expired, create new booking");
         if(booking.getBookingStatus() != BookingStatus.RESERVED)
             throw new IllegalStateException("Booking is not under reserved state, cannot add guests");
@@ -143,7 +143,7 @@ public class BookingServiceImpl implements BookingService {
 
         modelMapper.map(bookingWithGuests, bookingDto);
 
-        bookingDto.setUserDto(modelMapper.map(currentUser, UserDto.class));
+        bookingDto.setUser(modelMapper.map(currentUser, UserDto.class));
         log.info("Added {} guest in booking ID:{}", guestDtoList.size(), bookingId);
         return bookingDto;
 
@@ -192,6 +192,54 @@ public class BookingServiceImpl implements BookingService {
             throw new RuntimeException(e);
         }
         log.info("booking cancelled for bookingID:{}", bookingId);
+
+    }
+
+    @Override
+    public List<BookingDto> getAllBookingsOfAHotel(Long hotelId){
+
+        Hotel hotel = hotelService.returnHotelIfExists(hotelId);
+        User currentUser = AppUtil.returnCurrentUser();
+        log.info("Getting all booking for the hotel with ID:{}", hotelId);
+
+        if(!currentUser.equals(hotel.getOwner()))
+            throw new AccessDeniedException("You are not the owner of this hotel with ID: "+hotel);
+
+        List<Booking> bookings = bookingRepo.findBookingByHotelId(hotelId);
+
+        return bookings.stream()
+                .map((element) -> modelMapper.map(element, BookingDto.class))
+                .toList();
+
+    }
+
+    @Override
+    public HotelReportDto getHotelReport(Long hotelId, LocalDate startDate, LocalDate endDate) {
+
+        Hotel hotel = hotelService.returnHotelIfExists(hotelId);
+        User currentUser = AppUtil.returnCurrentUser();
+        log.info("Generating report for hotel with id:{}", hotelId);
+
+        if(!currentUser.equals(hotel.getOwner()))
+            throw new AccessDeniedException("You are not the owner of this hotel with ID: "+hotel);
+
+        LocalDateTime startDateTime = startDate.atStartOfDay();
+        LocalDateTime endDateTime = endDate.atTime(LocalTime.MAX);
+
+        List<Booking> confirmedBookings = bookingRepo.findBookingsByHotelAndStatusAndCreatedAtBetween(
+                hotel, startDateTime, endDateTime, CONFIRMED);
+
+        long totalConfirmedBookings =  confirmedBookings.size();
+
+        BigDecimal totalRevenueOfConfirmedBookings = confirmedBookings.stream()
+                .map(Booking::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal averageRevenue = totalRevenueOfConfirmedBookings.divide(
+                BigDecimal.valueOf(totalConfirmedBookings), RoundingMode.HALF_UP);
+
+        log.info("Successfully generated report for hotel with id:{}", hotelId);
+        return new HotelReportDto(totalConfirmedBookings, totalRevenueOfConfirmedBookings, averageRevenue);
 
     }
 

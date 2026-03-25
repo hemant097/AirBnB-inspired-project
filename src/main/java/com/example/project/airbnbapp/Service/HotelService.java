@@ -1,9 +1,12 @@
 package com.example.project.airbnbapp.Service;
 
 
+import com.example.project.airbnbapp.DTOs.BookingDto;
 import com.example.project.airbnbapp.DTOs.HotelDto;
 import com.example.project.airbnbapp.DTOs.HotelInfoDto;
 import com.example.project.airbnbapp.Entity.Hotel;
+
+import java.util.List;
 
 public interface HotelService {
     HotelDto createNewHotel(HotelDto hotelDto);
@@ -20,4 +23,6 @@ public interface HotelService {
     Hotel returnHotelIfExists(Long hotelId);
 
     public void isCurrentUserOwnerOfThisHotel(Hotel hotel);
+
+    List<HotelDto> getAllHotels();
 }
