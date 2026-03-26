@@ -22,7 +22,7 @@ public interface HotelService {
 
     Hotel returnHotelIfExists(Long hotelId);
 
-    public void isCurrentUserOwnerOfThisHotel(Hotel hotel);
+    void isCurrentUserOwnerOfThisHotel(Hotel hotel);
 
     List<HotelDto> getAllHotels();
 }

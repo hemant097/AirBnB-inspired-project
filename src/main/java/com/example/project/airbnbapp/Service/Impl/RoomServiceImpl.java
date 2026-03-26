@@ -3,11 +3,13 @@ package com.example.project.airbnbapp.Service.Impl;
 import com.example.project.airbnbapp.DTOs.RoomDto;
 import com.example.project.airbnbapp.Entity.Hotel;
 import com.example.project.airbnbapp.Entity.Room;
+import com.example.project.airbnbapp.Entity.User;
 import com.example.project.airbnbapp.Exception.ResourceNotFoundException;
 import com.example.project.airbnbapp.Repository.RoomRepository;
 import com.example.project.airbnbapp.Service.HotelService;
 import com.example.project.airbnbapp.Service.InventoryService;
 import com.example.project.airbnbapp.Service.RoomService;
+import com.example.project.airbnbapp.util.AppUtil;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -84,5 +86,24 @@ public class RoomServiceImpl implements RoomService {
     public Room returnRoomIfExists(Long roomId){
         return roomRepo.findById(roomId)
                 .orElseThrow( () -> new ResourceNotFoundException("No room exists with id :"+roomId));
+    }
+
+    @Override
+    public RoomDto updateRoomById(Long roomId, Long hotelId, RoomDto roomDto) {
+        log.info("Updating the room with ID:{}",roomId);
+        Hotel hotel = hotelService.returnHotelIfExists(hotelId);
+        //checks if the current user is the owner of this hotel
+        hotelService.isCurrentUserOwnerOfThisHotel(hotel);
+
+        Room room = returnRoomIfExists(roomId);
+        modelMapper.map(roomDto, room);
+        room.setId(roomId); // id is set, as if the roomDto has no id (i.e., null) , model mapper maps the id in room as null
+
+        //TODO: if the price or inventory is updated , then update the inventory for this room
+        room = roomRepo.save(room);
+
+        return modelMapper.map(room, RoomDto.class);
+
+
     }
 }

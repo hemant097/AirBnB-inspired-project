@@ -138,4 +138,8 @@ public interface InventoryRepository extends JpaRepository<Inventory,Long> {
 
 
     List<Inventory> findAllByHotelAndDateBetween(Hotel hotel, LocalDate startDate, LocalDate endDate);
+
+    @Query("SELECT i from Inventory i where i.room.id= : roomId order by i.date DESC")
+    List<Inventory> findInventoryForAParticularRoom(@Param("roomId") Long roomId);
 }
+
