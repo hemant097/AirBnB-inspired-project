@@ -46,7 +46,7 @@ public class BookingServiceImpl implements BookingService {
     private final GuestRepository guestRepo;
     private final ModelMapper modelMapper;
     private final PricingService pricingService;
-        private final HotelService hotelService;
+    private final HotelService hotelService;
     private final RoomService roomService;
 
 
@@ -201,9 +201,7 @@ public class BookingServiceImpl implements BookingService {
         Hotel hotel = hotelService.returnHotelIfExists(hotelId);
         User currentUser = AppUtil.returnCurrentUser();
         log.info("Getting all booking for the hotel with ID:{}", hotelId);
-
-        if(!currentUser.equals(hotel.getOwner()))
-            throw new AccessDeniedException("You are not the owner of this hotel with ID: "+hotel);
+        checkWhetherHotelOwnerIsMatching(currentUser, hotel.getOwner(), hotelId);
 
         List<Booking> bookings = bookingRepo.findBookingByHotelId(hotelId);
 
@@ -217,11 +215,8 @@ public class BookingServiceImpl implements BookingService {
     public HotelReportDto getHotelReport(Long hotelId, LocalDate startDate, LocalDate endDate) {
 
         Hotel hotel = hotelService.returnHotelIfExists(hotelId);
-        User currentUser = AppUtil.returnCurrentUser();
         log.info("Generating report for hotel with id:{}", hotelId);
-
-        if(!currentUser.equals(hotel.getOwner()))
-            throw new AccessDeniedException("You are not the owner of this hotel with ID: "+hotel);
+        checkWhetherHotelOwnerIsMatching(returnCurrentUser(), hotel.getOwner(), hotel.getId());
 
         LocalDateTime startDateTime = startDate.atStartOfDay();
         LocalDateTime endDateTime = endDate.atTime(LocalTime.MAX);
@@ -267,5 +262,12 @@ public class BookingServiceImpl implements BookingService {
     void checkWhetherBookingOwnerIsMatching(User currentUser, User bookingUser){
         if(!currentUser.equals(bookingUser))
             throw new UnauthorizedException("Booking does not belong to this user with id:"+currentUser.getId());
+    }
+
+    //if the current user in security context is NOT the owner of the hotel,then throws an exception, checks by
+    //comparing the user IDs of both users passed
+    void checkWhetherHotelOwnerIsMatching(User currentUser, User hotelOwner, Long hotelID){
+        if(!currentUser.equals(hotelOwner))
+            throw new AccessDeniedException("You are not the owner of this hotel with ID: "+hotelID);
     }
 }

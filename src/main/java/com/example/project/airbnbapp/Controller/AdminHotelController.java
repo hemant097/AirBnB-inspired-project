@@ -82,6 +82,7 @@ public class AdminHotelController {
         return new ResponseEntity<>(hotelBookings, HttpStatus.OK);
     }
 
+    //getting the hotel report of a particular hotel
     @GetMapping(path = "{hotelId}/reports")
     public ResponseEntity<HotelReportDto> getHotelReport(@PathVariable Long hotelId,
                                                          @RequestParam(required = false)LocalDate startDate,

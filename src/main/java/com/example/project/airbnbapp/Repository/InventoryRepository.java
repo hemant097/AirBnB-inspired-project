@@ -13,6 +13,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -43,7 +44,7 @@ public interface InventoryRepository extends JpaRepository<Inventory,Long> {
                                                  @Param("dateCount") Long dateCount,
                                                  Pageable pageable);
 
-    //lock inventory the requested requirements are matching
+    //lock inventory while init booking where the requested requirements are matching
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
         SELECT i from Inventory i
@@ -105,7 +106,7 @@ public interface InventoryRepository extends JpaRepository<Inventory,Long> {
                         @Param("numberOfRooms") int numberOfRooms);
 
 
-    //update when a booking is cancelled by the user
+    //update the booked_count when a booking is cancelled by the user
     @Modifying
     @Query("""
                 UPDATE Inventory i
@@ -120,7 +121,7 @@ public interface InventoryRepository extends JpaRepository<Inventory,Long> {
                                              @Param("checkOutDate") LocalDate endDate,
                                              @Param("numberOfRooms") int numberOfRooms);
 
-    //update when a booking is deleted by the Cron job
+    //update the reserved_count when a booking is deleted by the Cron job
     @Modifying
     @Query("""
                 UPDATE Inventory i
@@ -141,5 +142,27 @@ public interface InventoryRepository extends JpaRepository<Inventory,Long> {
 
     @Query("SELECT i from Inventory i where i.room.id= : roomId order by i.date DESC")
     List<Inventory> findInventoryForAParticularRoom(@Param("roomId") Long roomId);
+
+    //lock before updating inventory of a room
+    @Query("SELECT i from Inventory i WHERE i.room.id = :roomId AND i.date BETWEEN :startDate AND :endDate")
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    List<Inventory> lockInventoryToUpdateOfARoom(@Param("roomId") Long roomId,
+                                @Param("startDate") LocalDate startDate,
+                                @Param("endDate") LocalDate endDate);
+
+    //update surge_factor, closed of a particular room
+    @Modifying
+    @Query("""
+                UPDATE Inventory i
+                SET i.surgeFactor = :surge_factor,
+                    i.closed = :closed
+                WHERE i.room.id = :roomId
+                AND i.date BETWEEN :startDate AND :endDate
+    """)
+    void updateInventoryOfARoom(@Param("roomId") Long roomId,
+                                @Param("startDate") LocalDate startDate,
+                                @Param("endDate") LocalDate endDate,
+                                @Param("surge_factor")BigDecimal surgeFactor,
+                                @Param("closed") boolean closed);
 }
 

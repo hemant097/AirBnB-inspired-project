@@ -40,7 +40,8 @@ public class AdminRoomController {
     }
 
     @PutMapping("/{roomId}")
-    public ResponseEntity<RoomDto> updateRoomById(@PathVariable Long hotelId, @PathVariable Long roomId, @RequestBody RoomDto roomDto){
+    public ResponseEntity<RoomDto> updateRoomById(@PathVariable Long hotelId, @PathVariable Long roomId,
+                                                  @RequestBody RoomDto roomDto){
         return ResponseEntity.ok(roomService.updateRoomById(roomId,hotelId,roomDto));
     }
 

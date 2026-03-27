@@ -3,6 +3,7 @@ package com.example.project.airbnbapp.Service.Impl;
 import com.example.project.airbnbapp.DTOs.HotelPriceDto;
 import com.example.project.airbnbapp.DTOs.HotelSearchRequest;
 import com.example.project.airbnbapp.DTOs.InventoryDto;
+import com.example.project.airbnbapp.DTOs.UpdateInventoryRequestDto;
 import com.example.project.airbnbapp.Entity.Inventory;
 import com.example.project.airbnbapp.Entity.Room;
 import com.example.project.airbnbapp.Entity.User;
@@ -12,6 +13,7 @@ import com.example.project.airbnbapp.Repository.InventoryRepository;
 import com.example.project.airbnbapp.Repository.RoomRepository;
 import com.example.project.airbnbapp.Service.InventoryService;
 import com.example.project.airbnbapp.util.AppUtil;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
@@ -106,7 +108,6 @@ public class InventoryServiceImpl implements InventoryService {
                 .orElseThrow( () -> new ResourceNotFoundException("Room not found with ID: "+roomId));
 
         User user = AppUtil.returnCurrentUser();
-
         if( user.equals(room.getHotel().getOwner()) )
             throw new AccessDeniedException("You are not the owner of this hotel");
 
@@ -118,7 +119,24 @@ public class InventoryServiceImpl implements InventoryService {
     }
 
     @Override
-    public List<InventoryDto> updateInventoryOfARoom(Long roomId) {
+    @Transactional
+    public void updateInventoryOfARoom(Long roomId, UpdateInventoryRequestDto requestDto) {
+
+        LocalDate startDate = requestDto.getStartDate();
+        LocalDate endDate = requestDto.getEndDate();
+
+        log.info("update all inventory for Room ID:{} between {} - {} ", roomId,startDate,endDate);
+        Room room = roomRepo.findById(roomId)
+                .orElseThrow( () -> new ResourceNotFoundException("Room not found with ID: "+roomId));
+
+        User user = AppUtil.returnCurrentUser();
+        if( !user.equals(room.getHotel().getOwner()) )
+            throw new AccessDeniedException("You are not the owner of this hotel");
+
+        inventoryRepo.lockInventoryToUpdateOfARoom(roomId, startDate, endDate);
+        inventoryRepo.updateInventoryOfARoom(roomId, startDate, endDate,
+                requestDto.getSurgeFactor(), requestDto.getClosed());
+
 
     }
 }
