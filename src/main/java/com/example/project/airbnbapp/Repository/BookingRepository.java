@@ -2,6 +2,7 @@ package com.example.project.airbnbapp.Repository;
 
 import com.example.project.airbnbapp.Entity.Booking;
 import com.example.project.airbnbapp.Entity.Hotel;
+import com.example.project.airbnbapp.Entity.User;
 import com.example.project.airbnbapp.Entity.enums.BookingStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -22,15 +23,19 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     List<Booking> findBookingByHotelId(Long hotelId);
 
+    //bookings by hotel, status, and created at between start and end dates
     @Query("""
         SELECT b from Booking b
         WHERE b.hotel = :hotel
             AND b.bookingStatus = :status
-            AND (b.createdAt between :start AND :end)
+            AND b.createdAt between :startDate AND :endDate
     """)
     List<Booking> findBookingsByHotelAndStatusAndCreatedAtBetween(@Param("hotel")Hotel hotel,
-                                                                @Param("start")LocalDateTime startDateTime,
-                                                                @Param("end")LocalDateTime endDateTime,
+                                                                @Param("startDate")LocalDateTime startDateTime,
+                                                                @Param("endDate")LocalDateTime endDateTime,
                                                                 @Param("status") BookingStatus bookingStatus
     );
+
+    //bookings by a user
+    List<Booking> findByUser(User user);
 }

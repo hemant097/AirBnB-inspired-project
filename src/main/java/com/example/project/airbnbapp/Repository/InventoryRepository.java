@@ -140,10 +140,10 @@ public interface InventoryRepository extends JpaRepository<Inventory,Long> {
 
     List<Inventory> findAllByHotelAndDateBetween(Hotel hotel, LocalDate startDate, LocalDate endDate);
 
-    @Query("SELECT i from Inventory i where i.room.id= : roomId order by i.date DESC")
+    @Query("SELECT i from Inventory i where i.room.id= :roomId order by i.date")
     List<Inventory> findInventoryForAParticularRoom(@Param("roomId") Long roomId);
 
-    //lock before updating inventory of a room
+    //LOCK before updating inventory of a room
     @Query("SELECT i from Inventory i WHERE i.room.id = :roomId AND i.date BETWEEN :startDate AND :endDate")
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     List<Inventory> lockInventoryToUpdateOfARoom(@Param("roomId") Long roomId,

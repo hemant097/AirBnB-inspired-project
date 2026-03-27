@@ -108,7 +108,7 @@ public class InventoryServiceImpl implements InventoryService {
                 .orElseThrow( () -> new ResourceNotFoundException("Room not found with ID: "+roomId));
 
         User user = AppUtil.returnCurrentUser();
-        if( user.equals(room.getHotel().getOwner()) )
+        if( !user.equals(room.getHotel().getOwner()) )
             throw new AccessDeniedException("You are not the owner of this hotel");
 
         return inventoryRepo.findInventoryForAParticularRoom(roomId)

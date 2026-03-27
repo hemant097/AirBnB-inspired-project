@@ -12,7 +12,7 @@ import java.util.List;
 @RestController
 @RequestMapping(path = "/admin/inventory/rooms")
 @RequiredArgsConstructor
-public class InventoryController {
+public class AdminInventoryController {
 
     private final InventoryService inventoryService;
 

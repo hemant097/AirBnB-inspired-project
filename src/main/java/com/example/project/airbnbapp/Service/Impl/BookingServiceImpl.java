@@ -1,5 +1,6 @@
 package com.example.project.airbnbapp.Service.Impl;
 
+import ch.qos.logback.core.sift.AppenderTracker;
 import com.example.project.airbnbapp.DTOs.*;
 import com.example.project.airbnbapp.Entity.*;
 import com.example.project.airbnbapp.Entity.enums.BookingStatus;
@@ -34,6 +35,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import static com.example.project.airbnbapp.Entity.enums.BookingStatus.*;
+import static com.example.project.airbnbapp.util.AppUtil.hasBookingExpired;
 import static com.example.project.airbnbapp.util.AppUtil.returnCurrentUser;
 
 @Service
@@ -204,11 +206,9 @@ public class BookingServiceImpl implements BookingService {
         checkWhetherHotelOwnerIsMatching(currentUser, hotel.getOwner(), hotelId);
 
         List<Booking> bookings = bookingRepo.findBookingByHotelId(hotelId);
-
         return bookings.stream()
                 .map((element) -> modelMapper.map(element, BookingDto.class))
                 .toList();
-
     }
 
     @Override
@@ -239,10 +239,22 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
-    public String getBookingStatus(Long bookingId) {
+    public List<BookingDto> getMyBookings() {
+        User currentUser = AppUtil.returnCurrentUser();
+        log.info("getting booking of user with id:{}", currentUser.getId());
 
+        return bookingRepo.findByUser(currentUser)
+                .stream()
+                .map((element) -> modelMapper.map(element, BookingDto.class))
+                .toList();
+    }
+
+    @Override
+    public String getBookingStatus(Long bookingId) {
+        log.info("getting status of booking ID:{}", bookingId);
         Booking booking = returnBookingIfExists(bookingId);
         checkWhetherBookingOwnerIsMatching(returnCurrentUser(), booking.getUser());
+
         return booking.getBookingStatus().name();
     }
 
@@ -252,10 +264,6 @@ public class BookingServiceImpl implements BookingService {
                 .orElseThrow(() -> new ResourceNotFoundException("no booking found with id "+bookingId));
     }
 
-    //checks if the booking created time plus 10 minutes is before the current time,
-     boolean hasBookingExpired(LocalDateTime bct){
-        return bct.plusMinutes(10).isBefore(LocalDateTime.now());
-    }
 
     //if the current user in security context is NOT the owner of the booking,then throws an exception, checks by
     //comparing the user IDs of both users passed
@@ -267,6 +275,7 @@ public class BookingServiceImpl implements BookingService {
     //if the current user in security context is NOT the owner of the hotel,then throws an exception, checks by
     //comparing the user IDs of both users passed
     void checkWhetherHotelOwnerIsMatching(User currentUser, User hotelOwner, Long hotelID){
+        log.info("checking whether hotel owner is matching with current user");
         if(!currentUser.equals(hotelOwner))
             throw new AccessDeniedException("You are not the owner of this hotel with ID: "+hotelID);
     }

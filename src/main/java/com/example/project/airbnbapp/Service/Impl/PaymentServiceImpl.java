@@ -47,7 +47,7 @@ public class PaymentServiceImpl implements PaymentService {
         User currentUser = AppUtil.returnCurrentUser();
         if(!currentUser.equals(booking.getUser()))
             throw new UnauthorizedException("Booking does not belong to this user with id:"+currentUser.getId());
-        if(  hasBookingExpired(booking.getCreatedAt()) )
+        if(  AppUtil.hasBookingExpired(booking.getCreatedAt()) )
             throw new IllegalStateException("Booking has expired, create new booking");
 
         log.info("Booking is valid, and in RESERVED status, now moving forward with payments");
@@ -98,9 +98,6 @@ public class PaymentServiceImpl implements PaymentService {
         }
     }
 
-    //checks if the booking created time plus 10 minutes were before than the current time,
-    // if yes booking is expired, and exception is thrown
-    boolean hasBookingExpired(LocalDateTime bct){
-        return bct.plusMinutes(10).isBefore(LocalDateTime.now());
-    }
+
+
 }

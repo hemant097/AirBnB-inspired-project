@@ -6,6 +6,7 @@ import com.example.project.airbnbapp.Entity.enums.BookingStatus;
 import com.example.project.airbnbapp.Repository.BookingRepository;
 import com.example.project.airbnbapp.Repository.GuestRepository;
 import com.example.project.airbnbapp.Repository.InventoryRepository;
+import com.example.project.airbnbapp.util.AppUtil;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,8 +26,9 @@ public class BookingUpdateService {
     private final InventoryRepository inventoryRepo;
     private final GuestRepository guestRepo;
 
-    //Here all the booking which are not confirmed, get deleted if the last updated time is more than 7 days i.e., all
-    // the non-confirmed bookings older than 7 days get deleted automatically
+    //Here all the booking which are not confirmed, get deleted if the last updated time is more than 30 days i.e., all
+    // the non-confirmed bookings older than 30 days get deleted automatically
+    //and the bookings which are older than 10 minutes are marked as expired
 
 
     @Scheduled(cron = "0 0 * * * *")
@@ -52,10 +54,14 @@ public class BookingUpdateService {
                         booking.getCheckInDate(), booking.getCheckOutDate(), booking.getRoomsCount());
                 log.info("Inventory related to booking ID:{} is also updated",bookingId);
             }
+            if(AppUtil.hasBookingExpired(booking.getUpdatedAt())){
+                log.info("This booking is expired, marking the status as expired");
+                booking.setBookingStatus(BookingStatus.EXPIRED);
+            }
         }
     }
 
     boolean isBookingWorthyOfDeletion(LocalDateTime bookingUpdateTime){
-        return bookingUpdateTime.plusDays(7).isBefore(LocalDateTime.now());
+        return bookingUpdateTime.plusDays(30).isBefore(LocalDateTime.now());
     }
 }
