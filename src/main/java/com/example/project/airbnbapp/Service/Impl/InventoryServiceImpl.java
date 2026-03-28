@@ -1,9 +1,6 @@
 package com.example.project.airbnbapp.Service.Impl;
 
-import com.example.project.airbnbapp.DTOs.HotelPriceDto;
-import com.example.project.airbnbapp.DTOs.HotelSearchRequest;
-import com.example.project.airbnbapp.DTOs.InventoryDto;
-import com.example.project.airbnbapp.DTOs.UpdateInventoryRequestDto;
+import com.example.project.airbnbapp.DTOs.*;
 import com.example.project.airbnbapp.Entity.Inventory;
 import com.example.project.airbnbapp.Entity.Room;
 import com.example.project.airbnbapp.Entity.User;
@@ -77,7 +74,7 @@ public class InventoryServiceImpl implements InventoryService {
     }
 
     @Override
-    public Page<HotelPriceDto> searchHotels(HotelSearchRequest searchRequest) {
+    public Page<HotelPriceInfoDto> searchHotels(HotelSearchRequest searchRequest) {
 
         log.info("Searching hotels for {} city, from {} to {} ",
                 searchRequest.getCity(), searchRequest.getStartDate(), searchRequest.getEndDate());
@@ -94,8 +91,15 @@ public class InventoryServiceImpl implements InventoryService {
                 pageable
         );
 
-        System.out.println(page.getContent().size());
-        return page;
+        Page<HotelPriceInfoDto> convertedPage = page.map( value ->{
+            HotelPriceInfoDto hotelPriceInfoDto = new HotelPriceInfoDto();
+            hotelPriceInfoDto.setHotelDto(modelMapper.map(value.getHotel(), HotelDto.class));
+            hotelPriceInfoDto.setPrice(value.getPrice());
+            return  hotelPriceInfoDto;
+        });
+
+        System.out.println(convertedPage.getContent().size());
+        return convertedPage;
 
 //                page.map( element -> modelMapper.map(element, HotelDto.class));
     }

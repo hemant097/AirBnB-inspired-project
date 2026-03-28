@@ -13,7 +13,7 @@ public interface BookingService {
 
     BookingDto initializeBooking(BookingRequest bookingRequest);
 
-    BookingDto addGuests(Long hotelId, List<GuestDto> guestDtoList);
+    BookingDto addGuests(Long hotelId, List<Long> guestIdList);
 
     void cancelBookingWithId(Long bookingId);
 

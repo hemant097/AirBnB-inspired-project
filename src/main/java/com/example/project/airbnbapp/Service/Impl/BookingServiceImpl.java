@@ -114,8 +114,8 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     @Transactional
-    public BookingDto addGuests(Long bookingId, List<GuestDto> guestDtoList) {
-        log.info("Trying to add {} guest(s) in the booking with id:{}", guestDtoList.size(), bookingId);
+    public BookingDto addGuests(Long bookingId, List<Long> guestIdList) {
+        log.info("Trying to add {} guest(s) in the booking with id:{}", guestIdList.size(), bookingId);
 
         Booking booking = returnBookingIfExists(bookingId);
         User currentUser = returnCurrentUser();
@@ -128,27 +128,36 @@ public class BookingServiceImpl implements BookingService {
 
         log.info("Booking has not expired, adding guests now");
 
-        BookingDto bookingDto = new BookingDto(); // as we need to return a dto
-        bookingDto.setGuests(new HashSet<>());
+/**   This previous logic was used, as DTOs weren't configured properly, Thus GuestDto(s), UserDto were manually created
+ *          and added to bookingDto,
 
-        for(GuestDto guestDto: guestDtoList){
-            Guest guest = modelMapper.map(guestDto,Guest.class);
-            guest.setUser(currentUser);
-            guest = guestRepo.save(guest);
+//        BookingDto bookingDto = new BookingDto(); // as we need to return a dto
+//        bookingDto.setGuests(new HashSet<>());
+//        for(GuestDto guestDto: guestDtoList){
+//            Guest guest = modelMapper.map(guestDto,Guest.class);
+//            guest.setUser(currentUser);
+//            guest = guestRepo.save(guest);
+//            booking.getGuests().add(guest);
+//            bookingDto.getGuests().add(guestDto);
+//        }
+//        modelMapper.map(bookingWithGuests, bookingDto);
+//
+//        bookingDto.setUser(modelMapper.map(currentUser, UserDto.class));
+//
+     return bookingDto;
+ **/
+
+        for(Long guestId: guestIdList){
+            Guest guest = guestRepo.findById(guestId)
+                    .orElseThrow( () -> new ResourceNotFoundException("Guest not found with ID: "+guestId));
             booking.getGuests().add(guest);
-            bookingDto.getGuests().add(guestDto);
         }
-
         booking.setBookingStatus(GUESTS_ADDED);
-
         Booking bookingWithGuests = bookingRepo.save(booking);
 
-        modelMapper.map(bookingWithGuests, bookingDto);
-
-        bookingDto.setUser(modelMapper.map(currentUser, UserDto.class));
-        log.info("Added {} guest in booking ID:{}", guestDtoList.size(), bookingId);
-        return bookingDto;
-
+        log.info("Added {} guest(s) in booking ID:{}", guestIdList.size(), bookingId);
+        return modelMapper.map(bookingWithGuests, BookingDto.class);
+        //Now all this handled by modelMapper automatically
     }
 
     @Override

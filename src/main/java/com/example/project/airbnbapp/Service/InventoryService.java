@@ -12,7 +12,7 @@ public interface InventoryService {
 
     void deleteFutureInventory(Room room);
 
-    Page<HotelPriceDto> searchHotels(HotelSearchRequest searchRequest);
+    Page<HotelPriceInfoDto> searchHotels(HotelSearchRequest searchRequest);
 
     List<InventoryDto> allInventoryForARoom(Long roomId);
 

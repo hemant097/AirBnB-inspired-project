@@ -15,5 +15,6 @@ public class InventoryDto {
     private Integer totalCount;
     private BigDecimal surgeFactor;
     private BigDecimal price;
+    private Boolean closed;
 
 }

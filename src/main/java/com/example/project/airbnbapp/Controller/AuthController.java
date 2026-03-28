@@ -6,6 +6,7 @@ import com.example.project.airbnbapp.DTOs.SignUpRequestDto;
 import com.example.project.airbnbapp.DTOs.UserDto;
 import com.example.project.airbnbapp.Security.AuthService;
 import com.example.project.airbnbapp.Security.JWTService;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -30,11 +31,13 @@ public class AuthController {
 
 
     @PostMapping("/signup")
+    @Operation(summary = "Create a new account", tags = {"Auth"})
     public ResponseEntity<UserDto> signUp(@RequestBody SignUpRequestDto signUpRequestDto){
         return new ResponseEntity<>(authService.signUp(signUpRequestDto), HttpStatus.CREATED);
     }
 
     @PostMapping("/login")
+    @Operation(summary = "Login request", tags = {"Auth"})
     public ResponseEntity<LoginResponseDto> login(@RequestBody LoginDto loginDto, HttpServletResponse httpServletResponse){
         String[] tokens = authService.login(loginDto);
 //        tokens[0] is accessToken
@@ -47,6 +50,7 @@ public class AuthController {
     }
 
     @PostMapping("refresh")
+    @Operation(summary = "Refresh the JWT with a refresh token", tags = {"Auth"})
     public ResponseEntity<LoginResponseDto> refresh(HttpServletRequest request){
         String refreshToken = Arrays.stream(request.getCookies())
                 .filter(cookie -> "refreshToken".equals(cookie.getName()))
