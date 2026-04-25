@@ -4,6 +4,7 @@ import com.example.project.airbnbapp.Service.PaymentService;
 import com.stripe.exception.SignatureVerificationException;
 import com.stripe.model.Event;
 import com.stripe.net.Webhook;
+import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
@@ -25,6 +26,7 @@ public class WebhookController {
     private String endpointSecret;
 
     @PostMapping("/payment")
+    @Operation(summary = "Listens for the event received from Stripe", tags = {"Stripe webhook"})
     public ResponseEntity<Void> capturePayments(@RequestBody String payload, @RequestHeader("Stripe-Signature") String sigHeader){
         try{
             Event event = Webhook.constructEvent(payload, sigHeader, endpointSecret);
